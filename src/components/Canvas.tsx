@@ -1,4 +1,5 @@
 
+
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path } from "fabric";
 import { Toolbar } from "./Toolbar";
@@ -27,13 +28,6 @@ export const Canvas = () => {
       height: window.innerHeight,
       backgroundColor: "#ffffff",
     });
-
-    // Initialize the drawing brush
-    canvas.isDrawingMode = false;
-    if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = activeColor;
-      canvas.freeDrawingBrush.width = strokeWidth;
-    }
 
     setFabricCanvas(canvas);
     toast("Canvas ready! Start creating your diagram!");
@@ -74,20 +68,21 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Set drawing mode based on active tool
-    fabricCanvas.isDrawingMode = activeTool === "draw";
+    console.log("Setting drawing mode:", activeTool === "draw");
     
-    // Configure brush when in drawing mode
     if (activeTool === "draw") {
-      if (fabricCanvas.freeDrawingBrush) {
-        fabricCanvas.freeDrawingBrush.color = activeColor;
-        fabricCanvas.freeDrawingBrush.width = strokeWidth;
-      }
-      // Make sure selection is disabled in drawing mode
+      fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
+      
+      // Configure the brush
+      fabricCanvas.freeDrawingBrush.color = activeColor;
+      fabricCanvas.freeDrawingBrush.width = strokeWidth;
+      
+      console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
     } else {
-      // Enable selection when not drawing
+      fabricCanvas.isDrawingMode = false;
       fabricCanvas.selection = true;
+      console.log("Drawing mode disabled");
     }
     
     fabricCanvas.renderAll();
@@ -150,6 +145,7 @@ export const Canvas = () => {
   };
 
   const handleToolClick = (tool: Tool) => {
+    console.log("Tool clicked:", tool);
     setActiveTool(tool);
 
     if (["rectangle", "circle", "line", "text"].includes(tool)) {
@@ -228,3 +224,4 @@ export const Canvas = () => {
     </div>
   );
 };
+
