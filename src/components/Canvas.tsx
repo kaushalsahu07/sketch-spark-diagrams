@@ -18,6 +18,7 @@ export const Canvas = () => {
   const [showAI, setShowAI] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
+  // Initialize canvas only once
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -67,6 +68,32 @@ export const Canvas = () => {
       window.removeEventListener('keydown', handleKeyDown);
       canvas.dispose();
     };
+  }, []); // Empty dependency array - only run once
+
+  // Handle color and stroke width updates
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    // Update active object color if one is selected
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+      if (activeObject.type === 'path') {
+        activeObject.set({ stroke: activeColor });
+      } else {
+        activeObject.set({ 
+          fill: activeColor,
+          stroke: activeColor 
+        });
+      }
+    }
+
+    // Update drawing brush
+    if (fabricCanvas.freeDrawingBrush) {
+      fabricCanvas.freeDrawingBrush.color = activeColor;
+      fabricCanvas.freeDrawingBrush.width = strokeWidth;
+    }
+    
+    fabricCanvas.renderAll();
   }, [activeColor, strokeWidth]);
 
   useEffect(() => {
