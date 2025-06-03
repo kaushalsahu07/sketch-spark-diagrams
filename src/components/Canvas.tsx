@@ -1,6 +1,5 @@
-
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush } from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
@@ -26,7 +25,13 @@ export const Canvas = () => {
       width: window.innerWidth,
       height: window.innerHeight,
       backgroundColor: "#ffffff",
+      isDrawingMode: false,
     });
+
+    // Initialize the drawing brush
+    canvas.freeDrawingBrush = new PencilBrush(canvas);
+    canvas.freeDrawingBrush.color = activeColor;
+    canvas.freeDrawingBrush.width = strokeWidth;
 
     setFabricCanvas(canvas);
     toast("Canvas ready! Start creating your diagram!");
@@ -62,29 +67,23 @@ export const Canvas = () => {
       window.removeEventListener('keydown', handleKeyDown);
       canvas.dispose();
     };
-  }, []);
+  }, [activeColor, strokeWidth]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
 
     console.log("Setting drawing mode:", activeTool === "draw");
     
+    fabricCanvas.isDrawingMode = activeTool === "draw";
+    fabricCanvas.selection = activeTool === "select";
+    
     if (activeTool === "draw") {
-      fabricCanvas.isDrawingMode = true;
-      fabricCanvas.selection = false;
-      
-      // Only configure the brush if it exists
-      if (fabricCanvas.freeDrawingBrush) {
-        fabricCanvas.freeDrawingBrush.color = activeColor;
-        fabricCanvas.freeDrawingBrush.width = strokeWidth;
-        console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
-      } else {
-        console.log("FreeDrawingBrush not available yet");
+      if (!fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
       }
-    } else {
-      fabricCanvas.isDrawingMode = false;
-      fabricCanvas.selection = true;
-      console.log("Drawing mode disabled");
+      fabricCanvas.freeDrawingBrush.color = activeColor;
+      fabricCanvas.freeDrawingBrush.width = strokeWidth;
+      console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
     }
     
     fabricCanvas.renderAll();
