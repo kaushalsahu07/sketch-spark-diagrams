@@ -1,5 +1,4 @@
 
-
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path } from "fabric";
 import { Toolbar } from "./Toolbar";
@@ -74,11 +73,14 @@ export const Canvas = () => {
       fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
       
-      // Configure the brush
-      fabricCanvas.freeDrawingBrush.color = activeColor;
-      fabricCanvas.freeDrawingBrush.width = strokeWidth;
-      
-      console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
+      // Only configure the brush if it exists
+      if (fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush.color = activeColor;
+        fabricCanvas.freeDrawingBrush.width = strokeWidth;
+        console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
+      } else {
+        console.log("FreeDrawingBrush not available yet");
+      }
     } else {
       fabricCanvas.isDrawingMode = false;
       fabricCanvas.selection = true;
@@ -224,4 +226,3 @@ export const Canvas = () => {
     </div>
   );
 };
-
