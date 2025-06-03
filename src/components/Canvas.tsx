@@ -38,10 +38,27 @@ export const Canvas = () => {
       canvas.renderAll();
     };
 
+    // Handle keyboard events for delete functionality
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeObject = canvas.getActiveObject();
+        const activeObjects = canvas.getActiveObjects();
+        
+        if (activeObjects.length > 0) {
+          activeObjects.forEach(obj => canvas.remove(obj));
+          canvas.discardActiveObject();
+          canvas.renderAll();
+          toast("Selected objects deleted");
+        }
+      }
+    };
+
     window.addEventListener('resize', handleResize);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
       canvas.dispose();
     };
   }, []);
