@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path } from "fabric";
 import { Toolbar } from "./Toolbar";
@@ -28,10 +27,6 @@ export const Canvas = () => {
       backgroundColor: "#ffffff",
     });
 
-    // Initialize drawing brush
-    canvas.freeDrawingBrush.color = activeColor;
-    canvas.freeDrawingBrush.width = strokeWidth;
-
     setFabricCanvas(canvas);
     toast("Canvas ready! Start creating your diagram!");
 
@@ -56,6 +51,7 @@ export const Canvas = () => {
 
     fabricCanvas.isDrawingMode = activeTool === "draw";
     
+    // Only set brush properties if drawing mode is enabled and brush exists
     if (activeTool === "draw" && fabricCanvas.freeDrawingBrush) {
       fabricCanvas.freeDrawingBrush.color = activeColor;
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
