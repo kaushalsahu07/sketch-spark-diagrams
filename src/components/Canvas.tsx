@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path } from "fabric";
 import { Toolbar } from "./Toolbar";
@@ -26,6 +27,13 @@ export const Canvas = () => {
       height: window.innerHeight,
       backgroundColor: "#ffffff",
     });
+
+    // Initialize the drawing brush
+    canvas.isDrawingMode = false;
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeColor;
+      canvas.freeDrawingBrush.width = strokeWidth;
+    }
 
     setFabricCanvas(canvas);
     toast("Canvas ready! Start creating your diagram!");
@@ -66,13 +74,23 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
+    // Set drawing mode based on active tool
     fabricCanvas.isDrawingMode = activeTool === "draw";
     
-    // Only set brush properties if drawing mode is enabled and brush exists
-    if (activeTool === "draw" && fabricCanvas.freeDrawingBrush) {
-      fabricCanvas.freeDrawingBrush.color = activeColor;
-      fabricCanvas.freeDrawingBrush.width = strokeWidth;
+    // Configure brush when in drawing mode
+    if (activeTool === "draw") {
+      if (fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush.color = activeColor;
+        fabricCanvas.freeDrawingBrush.width = strokeWidth;
+      }
+      // Make sure selection is disabled in drawing mode
+      fabricCanvas.selection = false;
+    } else {
+      // Enable selection when not drawing
+      fabricCanvas.selection = true;
     }
+    
+    fabricCanvas.renderAll();
   }, [activeTool, activeColor, strokeWidth, fabricCanvas]);
 
   const addShape = (shapeType: string) => {
