@@ -46,7 +46,7 @@ export const Canvas = () => {
 
     // Handle keyboard events for delete functionality
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (e.key === 'Delete') {
         const activeObject = canvas.getActiveObject();
         const activeObjects = canvas.getActiveObjects();
         
