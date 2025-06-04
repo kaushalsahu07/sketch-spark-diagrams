@@ -5,6 +5,8 @@ import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
 import { ExportPanel } from "./ExportPanel";
 import { toast } from "sonner";
+import { ThemeToggle } from "./ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export type Tool = "select" | "draw" | "rectangle" | "circle" | "line" | "text" | "arrow";
 
@@ -17,15 +19,18 @@ export const Canvas = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const { theme } = useTheme();
 
   // Initialize canvas only once
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    const canvasBackgroundColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+
     const canvas = new FabricCanvas(canvasRef.current, {
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: "#ffffff",
+      backgroundColor: canvasBackgroundColor,
       isDrawingMode: false,
     });
 
@@ -68,7 +73,16 @@ export const Canvas = () => {
       window.removeEventListener('keydown', handleKeyDown);
       canvas.dispose();
     };
-  }, []); // Empty dependency array - only run once
+  }, [theme]); // Add theme to dependency array
+
+  // Update canvas background when theme changes
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    
+    const canvasBackgroundColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+    fabricCanvas.backgroundColor = canvasBackgroundColor;
+    fabricCanvas.renderAll();
+  }, [theme, fabricCanvas]);
 
   // Handle color and stroke width updates
   useEffect(() => {
@@ -207,7 +221,7 @@ export const Canvas = () => {
   };
 
   return (
-    <div className="relative w-full h-screen bg-gray-50 overflow-hidden">
+    <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
       
       {/* Floating Toolbar */}
@@ -231,6 +245,11 @@ export const Canvas = () => {
           strokeWidth={strokeWidth}
           onStrokeWidthChange={setStrokeWidth}
         />
+      </div>
+
+      {/* Theme Toggle */}
+      <div className="absolute top-4 left-4 z-10">
+        <ThemeToggle />
       </div>
 
       {/* AI Assistant Panel */}

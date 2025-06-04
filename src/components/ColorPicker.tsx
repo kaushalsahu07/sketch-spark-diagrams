@@ -18,27 +18,27 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 space-y-3">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
             <div className="flex items-center gap-2">
               <div 
-                className="w-4 h-4 rounded border-2 border-gray-300" 
+                className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600" 
                 style={{ backgroundColor: color }}
               />
-              <Palette className="h-4 w-4" />
+              <Palette className="h-4 w-4 text-gray-700 dark:text-gray-300" />
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-3">
+        <PopoverContent className="w-48 p-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <div className="space-y-3">
             <div className="grid grid-cols-5 gap-2">
               {colors.map((c) => (
                 <button
                   key={c}
                   className={`w-8 h-8 rounded border-2 ${
-                    color === c ? 'border-gray-400' : 'border-gray-200'
+                    color === c ? 'border-gray-400 dark:border-gray-500' : 'border-gray-200 dark:border-gray-600'
                   }`}
                   style={{ backgroundColor: c }}
                   onClick={() => onChange(c)}
@@ -50,7 +50,7 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
                 type="color"
                 value={color}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full h-8 rounded border border-gray-200"
+                className="w-full h-8 rounded border border-gray-200 dark:border-gray-600"
               />
             </div>
           </div>
@@ -58,7 +58,7 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
       </Popover>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-gray-600">Stroke Width</label>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Stroke Width</label>
         <Slider
           value={[strokeWidth]}
           onValueChange={(value) => onStrokeWidthChange(value[0])}
@@ -67,7 +67,7 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
           step={1}
           className="w-32"
         />
-        <div className="text-xs text-gray-500 text-center">{strokeWidth}px</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">{strokeWidth}px</div>
       </div>
     </div>
   );
