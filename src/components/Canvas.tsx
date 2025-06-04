@@ -21,6 +21,16 @@ export const Canvas = () => {
   const [showExport, setShowExport] = useState(false);
   const { theme } = useTheme();
 
+  // Get theme-appropriate color
+  const getThemeColor = (color: string) => {
+    // If user selected a custom color (not black or white), keep it
+    if (color !== "#000000" && color !== "#ffffff" && color !== "#1e40af") {
+      return color;
+    }
+    // Return theme-appropriate default color
+    return theme === 'dark' ? '#ffffff' : '#000000';
+  };
+
   // Initialize canvas only once
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -36,7 +46,7 @@ export const Canvas = () => {
 
     // Initialize the drawing brush
     canvas.freeDrawingBrush = new PencilBrush(canvas);
-    canvas.freeDrawingBrush.color = activeColor;
+    canvas.freeDrawingBrush.color = getThemeColor(activeColor);
     canvas.freeDrawingBrush.width = strokeWidth;
 
     setFabricCanvas(canvas);
@@ -88,27 +98,29 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
+    const themeColor = getThemeColor(activeColor);
+
     // Update active object color if one is selected
     const activeObject = fabricCanvas.getActiveObject();
     if (activeObject) {
       if (activeObject.type === 'path') {
-        activeObject.set({ stroke: activeColor });
+        activeObject.set({ stroke: themeColor });
       } else {
         activeObject.set({ 
-          fill: activeColor,
-          stroke: activeColor 
+          fill: themeColor,
+          stroke: themeColor 
         });
       }
     }
 
     // Update drawing brush
     if (fabricCanvas.freeDrawingBrush) {
-      fabricCanvas.freeDrawingBrush.color = activeColor;
+      fabricCanvas.freeDrawingBrush.color = themeColor;
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
     }
     
     fabricCanvas.renderAll();
-  }, [activeColor, strokeWidth]);
+  }, [activeColor, strokeWidth, theme]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -122,19 +134,20 @@ export const Canvas = () => {
       if (!fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
       }
-      fabricCanvas.freeDrawingBrush.color = activeColor;
+      fabricCanvas.freeDrawingBrush.color = getThemeColor(activeColor);
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
-      console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
+      console.log("Drawing mode enabled, brush color:", getThemeColor(activeColor), "width:", strokeWidth);
     }
     
     fabricCanvas.renderAll();
-  }, [activeTool, activeColor, strokeWidth, fabricCanvas]);
+  }, [activeTool, activeColor, strokeWidth, fabricCanvas, theme]);
 
   const addShape = (shapeType: string) => {
     if (!fabricCanvas) return;
 
     const centerX = fabricCanvas.width! / 2;
     const centerY = fabricCanvas.height! / 2;
+    const themeColor = getThemeColor(activeColor);
 
     switch (shapeType) {
       case "rectangle":
@@ -142,7 +155,7 @@ export const Canvas = () => {
           left: centerX - 50,
           top: centerY - 25,
           fill: "transparent",
-          stroke: activeColor,
+          stroke: themeColor,
           strokeWidth: strokeWidth,
           width: 100,
           height: 50,
@@ -155,7 +168,7 @@ export const Canvas = () => {
           left: centerX - 25,
           top: centerY - 25,
           fill: "transparent",
-          stroke: activeColor,
+          stroke: themeColor,
           strokeWidth: strokeWidth,
           radius: 25,
         });
@@ -164,7 +177,7 @@ export const Canvas = () => {
       
       case "line":
         const line = new Line([centerX - 50, centerY, centerX + 50, centerY], {
-          stroke: activeColor,
+          stroke: themeColor,
           strokeWidth: strokeWidth,
         });
         fabricCanvas.add(line);
@@ -174,7 +187,7 @@ export const Canvas = () => {
         const text = new Textbox("Double click to edit", {
           left: centerX - 75,
           top: centerY - 10,
-          fill: activeColor,
+          fill: themeColor,
           fontSize: 16,
           fontFamily: "Inter, sans-serif",
         });
@@ -198,7 +211,8 @@ export const Canvas = () => {
   const handleClear = () => {
     if (!fabricCanvas) return;
     fabricCanvas.clear();
-    fabricCanvas.backgroundColor = "#ffffff";
+    const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
+    fabricCanvas.backgroundColor = canvasBackgroundColor;
     fabricCanvas.renderAll();
     toast("Canvas cleared!");
   };
@@ -257,7 +271,7 @@ export const Canvas = () => {
         <AIAssistant 
           canvas={fabricCanvas}
           onClose={() => setShowAI(false)}
-          activeColor={activeColor}
+          activeColor={getThemeColor(activeColor)}
         />
       )}
 
