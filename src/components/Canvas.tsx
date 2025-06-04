@@ -25,7 +25,7 @@ export const Canvas = () => {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvasBackgroundColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+    const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
 
     const canvas = new FabricCanvas(canvasRef.current, {
       width: window.innerWidth,
@@ -79,7 +79,7 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
     
-    const canvasBackgroundColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+    const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
     fabricCanvas.backgroundColor = canvasBackgroundColor;
     fabricCanvas.renderAll();
   }, [theme, fabricCanvas]);

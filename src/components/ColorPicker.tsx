@@ -21,24 +21,26 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-gray-100 dark:hover:bg-gray-700">
             <div className="flex items-center gap-2">
               <div 
-                className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600" 
+                className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-500" 
                 style={{ backgroundColor: color }}
               />
               <Palette className="h-4 w-4 text-gray-700 dark:text-gray-300" />
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <PopoverContent className="w-48 p-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-xl">
           <div className="space-y-3">
             <div className="grid grid-cols-5 gap-2">
               {colors.map((c) => (
                 <button
                   key={c}
-                  className={`w-8 h-8 rounded border-2 ${
-                    color === c ? 'border-gray-400 dark:border-gray-500' : 'border-gray-200 dark:border-gray-600'
+                  className={`w-8 h-8 rounded border-2 transition-all hover:scale-110 ${
+                    color === c 
+                      ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-800' 
+                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                   }`}
                   style={{ backgroundColor: c }}
                   onClick={() => onChange(c)}
@@ -50,7 +52,7 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
                 type="color"
                 value={color}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full h-8 rounded border border-gray-200 dark:border-gray-600"
+                className="w-full h-8 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer"
               />
             </div>
           </div>
