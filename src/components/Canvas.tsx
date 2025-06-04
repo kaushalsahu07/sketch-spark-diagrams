@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush, Object as FabricObject } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush } from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
 import { DesignPanel } from "./DesignPanel";
@@ -20,196 +20,72 @@ export const Canvas = () => {
   const [showAI, setShowAI] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
-  // Initialize canvas
+  // Initialize canvas only once
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    
     const canvas = new FabricCanvas(canvasRef.current, {
       width: window.innerWidth,
       height: window.innerHeight,
       backgroundColor: "#ffffff",
       isDrawingMode: false,
-      enableRetinaScaling: true,
-      devicePixelRatio: dpr,
-      preserveObjectStacking: true,
-      perPixelTargetFind: true,
-      targetFindTolerance: 4,
-      selectionKey: 'shiftKey',
-      altSelectionKey: 'altKey',
     });
 
-    // Set up selection behavior for overlapping objects
-    canvas.on('mouse:down', (options) => {
-      if (!options.target) return;
-
-      // If alt key is pressed, cycle through overlapping objects
-      if (options.e.altKey && options.target) {
-        const clickPoint = canvas.getPointer(options.e);
-        const objects = canvas.getObjects().filter(obj => {
-          const bound = obj.getBoundingRect();
-          return clickPoint.x >= bound.left && 
-                 clickPoint.x <= bound.left + bound.width &&
-                 clickPoint.y >= bound.top && 
-                 clickPoint.y <= bound.top + bound.height;
-        });
-
-        if (objects.length > 1) {
-          const currentIndex = objects.indexOf(options.target);
-          const nextIndex = (currentIndex + 1) % objects.length;
-          canvas.setActiveObject(objects[nextIndex]);
-          canvas.requestRenderAll();
-        }
-      }
-    });
-
-    // Enhance object selection
-    canvas.on('selection:created', () => {
-      const activeObj = canvas.getActiveObject();
-      if (activeObj && !activeObj.group) {
-        const objects = canvas.getObjects();
-        const currentIndex = objects.indexOf(activeObj);
-        
-        // Remove the object from its current position
-        objects.splice(currentIndex, 1);
-        // Add it back at the end (top)
-        objects.push(activeObj);
-        
-        canvas.requestRenderAll();
-      }
-    });
-
-    // Setup hover effect for selectable objects
-    canvas.on('mouse:over', (options) => {
-      if (options.target && options.target.selectable) {
-        options.target.set({
-          borderColor: '#2196F3',
-          cornerColor: '#2196F3',
-          transparentCorners: false,
-          borderScaleFactor: 2, // Make borders more visible on hover
-          borderDashArray: [3, 3] // Add dashed border on hover
-        });
-        canvas.requestRenderAll();
-      }
-    });
-
-    canvas.on('mouse:out', (options) => {
-      if (options.target && options.target.selectable) {
-        options.target.set({
-          borderColor: 'rgba(102,153,255,0.75)',
-          cornerColor: 'rgba(102,153,255,0.75)',
-          transparentCorners: true,
-          borderScaleFactor: 1,
-          borderDashArray: null
-        });
-        canvas.requestRenderAll();
-      }
-    });
-
-    // Add keyboard shortcuts for bringing objects forward/backward
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!canvas.getActiveObject()) return;
-
-      // Page Up brings object forward
-      if (e.key === 'PageUp') {
-        const obj = canvas.getActiveObject();
-        const objects = canvas.getObjects();
-        const currentIndex = objects.indexOf(obj);
-        if (currentIndex < objects.length - 1) {
-          objects.splice(currentIndex, 1);
-          objects.splice(currentIndex + 1, 0, obj);
-          canvas.requestRenderAll();
-          e.preventDefault();
-        }
-      }
-      // Page Down sends object backward
-      else if (e.key === 'PageDown') {
-        const obj = canvas.getActiveObject();
-        const objects = canvas.getObjects();
-        const currentIndex = objects.indexOf(obj);
-        if (currentIndex > 0) {
-          objects.splice(currentIndex, 1);
-          objects.splice(currentIndex - 1, 0, obj);
-          canvas.requestRenderAll();
-          e.preventDefault();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    // Initialize drawing brush
+    // Initialize the drawing brush
     canvas.freeDrawingBrush = new PencilBrush(canvas);
     canvas.freeDrawingBrush.color = activeColor;
     canvas.freeDrawingBrush.width = strokeWidth;
+
+    setFabricCanvas(canvas);
+    toast("Canvas ready! Start creating your diagram!");
 
     const handleResize = () => {
       canvas.setDimensions({
         width: window.innerWidth,
         height: window.innerHeight,
       });
-      canvas.requestRenderAll();
+      canvas.renderAll();
+    };
+
+    // Handle keyboard events for delete functionality
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete') {
+        const activeObject = canvas.getActiveObject();
+        const activeObjects = canvas.getActiveObjects();
+        
+        if (activeObjects.length > 0) {
+          activeObjects.forEach(obj => canvas.remove(obj));
+          canvas.discardActiveObject();
+          canvas.renderAll();
+          toast("Selected objects deleted");
+        }
+      }
     };
 
     window.addEventListener('resize', handleResize);
-    
-    setFabricCanvas(canvas);
-    toast.info(
-      "Selection Tips:\n" +
-      "• Hold Alt + Click to cycle through overlapping objects\n" +
-      "• Hold Shift for multiple selection\n" +
-      "• Use Page Up/Down to bring objects forward/backward",
-      { duration: 5000 }
-    );
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
       canvas.dispose();
     };
-  }, []);
+  }, []); // Empty dependency array - only run once
 
-  // Update color and stroke width
+  // Handle color and stroke width updates
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Update active object color and stroke width if one is selected
+    // Update active object color if one is selected
     const activeObject = fabricCanvas.getActiveObject();
     if (activeObject) {
       if (activeObject.type === 'path') {
-        // For freehand drawing paths, only update stroke properties
-        activeObject.set({
-          stroke: activeColor,
-          strokeWidth: strokeWidth
-        });
-      } else if (activeObject.type === 'line' || activeObject.type === 'arrow') {
-        // For lines and arrows, update stroke properties
-        activeObject.set({
-          stroke: activeColor,
-          strokeWidth: strokeWidth
-        });
-      } else if (activeObject.type === 'textbox') {
-        // For text, only update the fill color
-        activeObject.set({
-          fill: activeColor
-        });
+        activeObject.set({ stroke: activeColor });
       } else {
-        // For shapes like rectangles and circles
-        const currentFill = activeObject.get('fill');
-        if (currentFill) {
-          // If the object already has a fill, preserve it
-          activeObject.set({
-            stroke: activeColor,
-            strokeWidth: strokeWidth
-          });
-        } else {
-          // If it's a stroke-only shape, update stroke properties
-          activeObject.set({
-            stroke: activeColor,
-            strokeWidth: strokeWidth,
-            fill: 'transparent'
-          });
-        }
+        activeObject.set({ 
+          fill: activeColor,
+          stroke: activeColor 
+        });
       }
     }
 
@@ -242,70 +118,60 @@ export const Canvas = () => {
     fabricCanvas.renderAll();
   }, [activeTool, activeColor, strokeWidth, fabricCanvas]);
 
-  // Update the addShape function to create high-quality shapes
   const addShape = (shapeType: string) => {
     if (!fabricCanvas) return;
 
     const centerX = fabricCanvas.width! / 2;
     const centerY = fabricCanvas.height! / 2;
 
-    const commonProps = {
-      stroke: activeColor,
-      strokeWidth: strokeWidth,
-      fill: 'transparent',
-      left: centerX - 50,
-      top: centerY - 50,
-      width: 100,
-      height: 100,
-      strokeUniform: true,
-      noScaleCache: false,
-      objectCaching: true,
-    };
-
     switch (shapeType) {
       case "rectangle":
         const rect = new Rect({
-          ...commonProps,
-          rx: 0,
-          ry: 0,
+          left: centerX - 50,
+          top: centerY - 25,
+          fill: "transparent",
+          stroke: activeColor,
+          strokeWidth: strokeWidth,
+          width: 100,
+          height: 50,
         });
         fabricCanvas.add(rect);
         break;
+      
       case "circle":
         const circle = new Circle({
-          ...commonProps,
-          radius: 50,
+          left: centerX - 25,
+          top: centerY - 25,
+          fill: "transparent",
+          stroke: activeColor,
+          strokeWidth: strokeWidth,
+          radius: 25,
         });
         fabricCanvas.add(circle);
         break;
+      
       case "line":
-        const line = new Line([50, 50, 150, 50], {
+        const line = new Line([centerX - 50, centerY, centerX + 50, centerY], {
           stroke: activeColor,
           strokeWidth: strokeWidth,
-          left: centerX - 50,
-          top: centerY,
-          strokeUniform: true,
-          noScaleCache: false,
-          objectCaching: true,
         });
         fabricCanvas.add(line);
         break;
+      
       case "text":
-        const text = new Textbox("Type here", {
-          left: centerX - 50,
+        const text = new Textbox("Double click to edit", {
+          left: centerX - 75,
           top: centerY - 10,
-          width: 100,
-          fontSize: 16,
           fill: activeColor,
-          strokeWidth: 0,
-          fontFamily: 'Arial',
-          objectCaching: true,
+          fontSize: 16,
+          fontFamily: "Inter, sans-serif",
         });
         fabricCanvas.add(text);
         break;
     }
-
+    
     fabricCanvas.renderAll();
+    setActiveTool("select");
   };
 
   const handleToolClick = (tool: Tool) => {
