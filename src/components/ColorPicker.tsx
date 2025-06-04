@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
 import { Palette } from "lucide-react";
 
 interface ColorPickerProps {
@@ -11,14 +10,14 @@ interface ColorPickerProps {
   onStrokeWidthChange: (width: number) => void;
 }
 
-export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange }: ColorPickerProps) => {
+export const ColorPicker = ({ color, onChange }: ColorPickerProps) => {
   const colors = [
     "#1e40af", "#dc2626", "#059669", "#d97706", "#7c3aed", 
     "#be185d", "#0891b2", "#65a30d", "#000000", "#6b7280"
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 space-y-3">
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3">
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
@@ -56,19 +55,6 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
           </div>
         </PopoverContent>
       </Popover>
-
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-gray-600">Stroke Width</label>
-        <Slider
-          value={[strokeWidth]}
-          onValueChange={(value) => onStrokeWidthChange(value[0])}
-          max={10}
-          min={1}
-          step={1}
-          className="w-32"
-        />
-        <div className="text-xs text-gray-500 text-center">{strokeWidth}px</div>
-      </div>
     </div>
   );
 };

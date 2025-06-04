@@ -1,7 +1,9 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush } from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
+import { DesignPanel } from "./DesignPanel";
 import { AIAssistant } from "./AIAssistant";
 import { ExportPanel } from "./ExportPanel";
 import { toast } from "sonner";
@@ -209,6 +211,13 @@ export const Canvas = () => {
   return (
     <div className="relative w-full h-screen bg-gray-50 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
+      
+      {/* Design Panel - Left Side */}
+      <DesignPanel 
+        canvas={fabricCanvas}
+        activeColor={activeColor}
+        onColorChange={setActiveColor}
+      />
       
       {/* Floating Toolbar */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
