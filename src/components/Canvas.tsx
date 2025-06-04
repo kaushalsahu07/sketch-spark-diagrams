@@ -35,12 +35,10 @@ export const Canvas = () => {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
-
     const canvas = new FabricCanvas(canvasRef.current, {
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: canvasBackgroundColor,
+      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
       isDrawingMode: false,
     });
 
@@ -81,16 +79,28 @@ export const Canvas = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
-      canvas.dispose();
     };
-  }, [theme]); // Add theme to dependency array
+  }, []); // Empty dependency array for one-time initialization
 
-  // Update canvas background when theme changes
+  // Handle theme changes without recreating canvas
   useEffect(() => {
     if (!fabricCanvas) return;
     
+    // Save the current canvas state
+    const objects = fabricCanvas.getObjects();
     const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
+    
+    // Update canvas background and object colors for theme
     fabricCanvas.backgroundColor = canvasBackgroundColor;
+    objects.forEach(obj => {
+      if (obj.fill === '#000000' || obj.fill === '#ffffff') {
+        obj.set('fill', getThemeColor(obj.fill as string));
+      }
+      if (obj.stroke === '#000000' || obj.stroke === '#ffffff') {
+        obj.set('stroke', getThemeColor(obj.stroke as string));
+      }
+    });
+    
     fabricCanvas.renderAll();
   }, [theme, fabricCanvas]);
 
