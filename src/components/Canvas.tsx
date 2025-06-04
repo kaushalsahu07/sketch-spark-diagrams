@@ -5,8 +5,6 @@ import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
 import { ExportPanel } from "./ExportPanel";
 import { toast } from "sonner";
-import { ThemeToggle } from "./ThemeToggle";
-import { useTheme } from "@/contexts/ThemeContext";
 
 export type Tool = "select" | "draw" | "rectangle" | "circle" | "line" | "text" | "arrow";
 
@@ -19,32 +17,20 @@ export const Canvas = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const { theme } = useTheme();
 
-  // Get theme-appropriate color
-  const getThemeColor = (color: string) => {
-    // If user selected a custom color (not black or white), keep it
-    if (color !== "#000000" && color !== "#ffffff" && color !== "#1e40af") {
-      return color;
-    }
-    // Return theme-appropriate default color
-    return theme === 'dark' ? '#ffffff' : '#000000';
-  };
-
-  // Initialize canvas only once
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const canvas = new FabricCanvas(canvasRef.current, {
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+      backgroundColor: "#ffffff",
       isDrawingMode: false,
     });
 
     // Initialize the drawing brush
     canvas.freeDrawingBrush = new PencilBrush(canvas);
-    canvas.freeDrawingBrush.color = getThemeColor(activeColor);
+    canvas.freeDrawingBrush.color = activeColor;
     canvas.freeDrawingBrush.width = strokeWidth;
 
     setFabricCanvas(canvas);
@@ -79,58 +65,9 @@ export const Canvas = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
+      canvas.dispose();
     };
-  }, []); // Empty dependency array for one-time initialization
-
-  // Handle theme changes without recreating canvas
-  useEffect(() => {
-    if (!fabricCanvas) return;
-    
-    // Save the current canvas state
-    const objects = fabricCanvas.getObjects();
-    const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
-    
-    // Update canvas background and object colors for theme
-    fabricCanvas.backgroundColor = canvasBackgroundColor;
-    objects.forEach(obj => {
-      if (obj.fill === '#000000' || obj.fill === '#ffffff') {
-        obj.set('fill', getThemeColor(obj.fill as string));
-      }
-      if (obj.stroke === '#000000' || obj.stroke === '#ffffff') {
-        obj.set('stroke', getThemeColor(obj.stroke as string));
-      }
-    });
-    
-    fabricCanvas.renderAll();
-  }, [theme, fabricCanvas]);
-
-  // Handle color and stroke width updates
-  useEffect(() => {
-    if (!fabricCanvas) return;
-
-    const themeColor = getThemeColor(activeColor);
-
-    // Update active object color if one is selected
-    const activeObject = fabricCanvas.getActiveObject();
-    if (activeObject) {
-      if (activeObject.type === 'path') {
-        activeObject.set({ stroke: themeColor });
-      } else {
-        activeObject.set({ 
-          fill: themeColor,
-          stroke: themeColor 
-        });
-      }
-    }
-
-    // Update drawing brush
-    if (fabricCanvas.freeDrawingBrush) {
-      fabricCanvas.freeDrawingBrush.color = themeColor;
-      fabricCanvas.freeDrawingBrush.width = strokeWidth;
-    }
-    
-    fabricCanvas.renderAll();
-  }, [activeColor, strokeWidth, theme]);
+  }, [activeColor, strokeWidth]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -144,20 +81,19 @@ export const Canvas = () => {
       if (!fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
       }
-      fabricCanvas.freeDrawingBrush.color = getThemeColor(activeColor);
+      fabricCanvas.freeDrawingBrush.color = activeColor;
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
-      console.log("Drawing mode enabled, brush color:", getThemeColor(activeColor), "width:", strokeWidth);
+      console.log("Drawing mode enabled, brush color:", activeColor, "width:", strokeWidth);
     }
     
     fabricCanvas.renderAll();
-  }, [activeTool, activeColor, strokeWidth, fabricCanvas, theme]);
+  }, [activeTool, activeColor, strokeWidth, fabricCanvas]);
 
   const addShape = (shapeType: string) => {
     if (!fabricCanvas) return;
 
     const centerX = fabricCanvas.width! / 2;
     const centerY = fabricCanvas.height! / 2;
-    const themeColor = getThemeColor(activeColor);
 
     switch (shapeType) {
       case "rectangle":
@@ -165,7 +101,7 @@ export const Canvas = () => {
           left: centerX - 50,
           top: centerY - 25,
           fill: "transparent",
-          stroke: themeColor,
+          stroke: activeColor,
           strokeWidth: strokeWidth,
           width: 100,
           height: 50,
@@ -178,7 +114,7 @@ export const Canvas = () => {
           left: centerX - 25,
           top: centerY - 25,
           fill: "transparent",
-          stroke: themeColor,
+          stroke: activeColor,
           strokeWidth: strokeWidth,
           radius: 25,
         });
@@ -187,7 +123,7 @@ export const Canvas = () => {
       
       case "line":
         const line = new Line([centerX - 50, centerY, centerX + 50, centerY], {
-          stroke: themeColor,
+          stroke: activeColor,
           strokeWidth: strokeWidth,
         });
         fabricCanvas.add(line);
@@ -197,7 +133,7 @@ export const Canvas = () => {
         const text = new Textbox("Double click to edit", {
           left: centerX - 75,
           top: centerY - 10,
-          fill: themeColor,
+          fill: activeColor,
           fontSize: 16,
           fontFamily: "Inter, sans-serif",
         });
@@ -221,8 +157,7 @@ export const Canvas = () => {
   const handleClear = () => {
     if (!fabricCanvas) return;
     fabricCanvas.clear();
-    const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
-    fabricCanvas.backgroundColor = canvasBackgroundColor;
+    fabricCanvas.backgroundColor = "#ffffff";
     fabricCanvas.renderAll();
     toast("Canvas cleared!");
   };
@@ -245,7 +180,7 @@ export const Canvas = () => {
   };
 
   return (
-    <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className="relative w-full h-screen bg-gray-50 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
       
       {/* Floating Toolbar */}
@@ -271,17 +206,12 @@ export const Canvas = () => {
         />
       </div>
 
-      {/* Theme Toggle */}
-      <div className="absolute top-4 left-4 z-10">
-        <ThemeToggle />
-      </div>
-
       {/* AI Assistant Panel */}
       {showAI && (
         <AIAssistant 
           canvas={fabricCanvas}
           onClose={() => setShowAI(false)}
-          activeColor={getThemeColor(activeColor)}
+          activeColor={activeColor}
         />
       )}
 
