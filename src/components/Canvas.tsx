@@ -1,6 +1,5 @@
-
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush, EraserBrush } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush } from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
@@ -136,9 +135,10 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    console.log("Setting drawing mode:", activeTool === "draw" || activeTool === "eraser");
+    console.log("Setting drawing mode:", activeTool === "draw");
     
-    fabricCanvas.isDrawingMode = activeTool === "draw" || activeTool === "eraser";
+    // Only enable drawing mode for draw tool, not eraser
+    fabricCanvas.isDrawingMode = activeTool === "draw";
     fabricCanvas.selection = activeTool === "select";
     
     if (activeTool === "draw") {
@@ -149,14 +149,62 @@ export const Canvas = () => {
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
       console.log("Drawing mode enabled, brush color:", getThemeColor(activeColor), "width:", strokeWidth);
     } else if (activeTool === "eraser") {
-      fabricCanvas.freeDrawingBrush = new EraserBrush(fabricCanvas);
-      fabricCanvas.freeDrawingBrush.width = strokeWidth * 3; // Make eraser bigger
-      console.log("Eraser mode enabled, width:", strokeWidth * 3);
-      toast("Reality Eraser activated! Drag to erase anything!");
+      // Set up eraser mode
+      fabricCanvas.defaultCursor = 'crosshair';
+      toast("Reality Eraser activated! Click and drag to erase objects!");
+      
+      // Add mouse events for eraser
+      const handleMouseDown = (e: any) => {
+        if (activeTool !== "eraser") return;
+        setIsDrawing(true);
+        eraseAtPoint(e.pointer);
+      };
+
+      const handleMouseMove = (e: any) => {
+        if (activeTool !== "eraser" || !isDrawing) return;
+        eraseAtPoint(e.pointer);
+      };
+
+      const handleMouseUp = () => {
+        setIsDrawing(false);
+      };
+
+      fabricCanvas.on('mouse:down', handleMouseDown);
+      fabricCanvas.on('mouse:move', handleMouseMove);
+      fabricCanvas.on('mouse:up', handleMouseUp);
+
+      // Cleanup function
+      return () => {
+        fabricCanvas.off('mouse:down', handleMouseDown);
+        fabricCanvas.off('mouse:move', handleMouseMove);
+        fabricCanvas.off('mouse:up', handleMouseUp);
+      };
+    } else {
+      fabricCanvas.defaultCursor = 'default';
     }
     
     fabricCanvas.renderAll();
-  }, [activeTool, activeColor, strokeWidth, fabricCanvas, theme]);
+  }, [activeTool, activeColor, strokeWidth, fabricCanvas, theme, isDrawing]);
+
+  const eraseAtPoint = (pointer: any) => {
+    if (!fabricCanvas) return;
+    
+    const eraserSize = strokeWidth * 10; // Make eraser size larger
+    const objects = fabricCanvas.getObjects();
+    
+    objects.forEach(obj => {
+      // Check if the pointer is within the object bounds
+      const objBounds = obj.getBoundingRect();
+      if (pointer.x >= objBounds.left - eraserSize/2 && 
+          pointer.x <= objBounds.left + objBounds.width + eraserSize/2 &&
+          pointer.y >= objBounds.top - eraserSize/2 && 
+          pointer.y <= objBounds.top + objBounds.height + eraserSize/2) {
+        fabricCanvas.remove(obj);
+      }
+    });
+    
+    fabricCanvas.renderAll();
+  };
 
   const addShape = (shapeType: string) => {
     if (!fabricCanvas) return;
