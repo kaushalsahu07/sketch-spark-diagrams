@@ -155,11 +155,12 @@ export const Canvas = () => {
       fabricCanvas.defaultCursor = 'crosshair';
       toast("Reality Eraser activated! Click and drag to erase objects!");
       
-      // Add mouse events for eraser
+    // Add mouse events for eraser
       const handleMouseDown = (e: any) => {
         if (activeTool !== "eraser") return;
-        setIsDrawing(true);
-        eraseAtPoint(e.pointer);
+        setIsErasing(true);
+        const point = fabricCanvas.getPointer(e.e);
+        setEraserPath([point]);
       };
 
     const handleMouseMove = (e: any) => {
@@ -186,12 +187,18 @@ export const Canvas = () => {
       console.log("Eraser finished");
     };
 
-    // Add new listeners
     fabricCanvas.on('mouse:down', handleMouseDown);
     fabricCanvas.on('mouse:move', handleMouseMove);
     fabricCanvas.on('mouse:up', handleMouseUp);
-  };
 
+    // Return cleanup function
+    return () => {
+      fabricCanvas.off('mouse:down', handleMouseDown);
+      fabricCanvas.off('mouse:move', handleMouseMove);
+      fabricCanvas.off('mouse:up', handleMouseUp);
+    };
+  }
+  }, [activeTool, fabricCanvas]);
   const applyEraserEffect = (prevPoint: {x: number, y: number}, currentPoint: {x: number, y: number}) => {
     if (!fabricCanvas) return;
     
@@ -357,6 +364,53 @@ export const Canvas = () => {
     return dot / lenSq;
   };
 
+  // Function to set selection properties for new objects
+  const setObjectSelectionProperties = (obj: any) => {
+    obj.set({
+      selectable: activeTool === 'select',
+      evented: activeTool === 'select',
+      hasControls: activeTool === 'select',
+      hasBorders: activeTool === 'select',
+      lockMovementX: activeTool !== 'select',
+      lockMovementY: activeTool !== 'select'
+    });
+  };
+
+  // Update object selection based on active tool
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    // Make all objects selectable and movable only when using select tool
+    fabricCanvas.getObjects().forEach(obj => {
+      obj.set({
+        selectable: activeTool === 'select',
+        evented: activeTool === 'select', // This controls if the object responds to events
+      });
+    });
+
+    // Update canvas selection properties
+    fabricCanvas.selection = activeTool === 'select'; // Enable/disable group selection
+    fabricCanvas.skipTargetFind = activeTool !== 'select'; // Disable object targeting when not in select mode
+
+    // Clear any active selections when switching tools
+    if (activeTool !== 'select') {
+      fabricCanvas.discardActiveObject();
+    }
+
+    // Update drawing mode
+    fabricCanvas.isDrawingMode = activeTool === 'draw';
+
+    fabricCanvas.renderAll();
+  }, [activeTool, fabricCanvas]);
+
+  // Add selection control to newly added objects
+  const updateObjectSelection = (obj: any) => {
+    obj.set({
+      selectable: activeTool === 'select',
+      evented: activeTool === 'select',
+    });
+  };
+
   // Handle shape addition
   const addShape = (shapeType: string) => {
     if (!fabricCanvas) return;
@@ -377,6 +431,7 @@ export const Canvas = () => {
           height: 50,
         });
         fabricCanvas.add(rect);
+        updateObjectSelection(rect);
         break;
       
       case "circle":
@@ -389,6 +444,7 @@ export const Canvas = () => {
           radius: 25,
         });
         fabricCanvas.add(circle);
+        updateObjectSelection(circle);
         break;
       
       case "line":
@@ -397,6 +453,7 @@ export const Canvas = () => {
           strokeWidth: strokeWidth,
         });
         fabricCanvas.add(line);
+        updateObjectSelection(line);
         break;
       
       case "text":
@@ -408,6 +465,7 @@ export const Canvas = () => {
           fontFamily: "Inter, sans-serif",
         });
         fabricCanvas.add(text);
+        updateObjectSelection(text);
         break;
     }
     
