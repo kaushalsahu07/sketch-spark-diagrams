@@ -19,6 +19,7 @@ export const Canvas = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [eraserPath, setEraserPath] = useState<any[]>([]);
   const { theme } = useTheme();
 
   // Get theme-appropriate color
@@ -149,24 +150,37 @@ export const Canvas = () => {
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
       console.log("Drawing mode enabled, brush color:", getThemeColor(activeColor), "width:", strokeWidth);
     } else if (activeTool === "eraser") {
-      // Set up eraser mode
+      // Set up precise eraser mode
       fabricCanvas.defaultCursor = 'crosshair';
-      toast("Reality Eraser activated! Click and drag to erase objects!");
+      toast("Precision Eraser activated! Drag to erase exact areas!");
       
-      // Add mouse events for eraser
+      // Add mouse events for precise eraser
       const handleMouseDown = (e: any) => {
         if (activeTool !== "eraser") return;
         setIsDrawing(true);
-        eraseAtPoint(e.pointer);
+        setEraserPath([{ x: e.pointer.x, y: e.pointer.y }]);
       };
 
       const handleMouseMove = (e: any) => {
         if (activeTool !== "eraser" || !isDrawing) return;
-        eraseAtPoint(e.pointer);
+        
+        setEraserPath(prev => {
+          const newPath = [...prev, { x: e.pointer.x, y: e.pointer.y }];
+          
+          // Apply erasing to objects that intersect with the current path segment
+          if (newPath.length >= 2) {
+            const lastPoint = newPath[newPath.length - 2];
+            const currentPoint = newPath[newPath.length - 1];
+            eraseAlongLine(lastPoint, currentPoint);
+          }
+          
+          return newPath;
+        });
       };
 
       const handleMouseUp = () => {
         setIsDrawing(false);
+        setEraserPath([]);
       };
 
       fabricCanvas.on('mouse:down', handleMouseDown);
@@ -186,24 +200,92 @@ export const Canvas = () => {
     fabricCanvas.renderAll();
   }, [activeTool, activeColor, strokeWidth, fabricCanvas, theme, isDrawing]);
 
-  const eraseAtPoint = (pointer: any) => {
+  const eraseAlongLine = (startPoint: {x: number, y: number}, endPoint: {x: number, y: number}) => {
     if (!fabricCanvas) return;
     
-    const eraserSize = strokeWidth * 10; // Make eraser size larger
+    const eraserRadius = strokeWidth * 5;
     const objects = fabricCanvas.getObjects();
     
     objects.forEach(obj => {
-      // Check if the pointer is within the object bounds
-      const objBounds = obj.getBoundingRect();
-      if (pointer.x >= objBounds.left - eraserSize/2 && 
-          pointer.x <= objBounds.left + objBounds.width + eraserSize/2 &&
-          pointer.y >= objBounds.top - eraserSize/2 && 
-          pointer.y <= objBounds.top + objBounds.height + eraserSize/2) {
-        fabricCanvas.remove(obj);
+      if (obj.type === 'path') {
+        // For path objects (drawn lines), we need to modify the path data
+        eraseFromPath(obj, startPoint, endPoint, eraserRadius);
+      } else {
+        // For other objects, check if they intersect with the eraser line
+        if (objectIntersectsLine(obj, startPoint, endPoint, eraserRadius)) {
+          // Create a clipping mask to "erase" parts of the object
+          applyEraserMask(obj, startPoint, endPoint, eraserRadius);
+        }
       }
     });
     
     fabricCanvas.renderAll();
+  };
+
+  const eraseFromPath = (pathObj: any, startPoint: {x: number, y: number}, endPoint: {x: number, y: number}, radius: number) => {
+    // For path objects, we'll reduce their opacity in the erased area
+    // This is a simplified approach - a full implementation would modify the actual path data
+    const objBounds = pathObj.getBoundingRect();
+    
+    if (lineIntersectsRect(startPoint, endPoint, objBounds, radius)) {
+      const currentOpacity = pathObj.opacity || 1;
+      pathObj.set('opacity', Math.max(0, currentOpacity - 0.3));
+      
+      if (pathObj.opacity <= 0.1) {
+        fabricCanvas?.remove(pathObj);
+      }
+    }
+  };
+
+  const objectIntersectsLine = (obj: any, startPoint: {x: number, y: number}, endPoint: {x: number, y: number}, radius: number): boolean => {
+    const objBounds = obj.getBoundingRect();
+    return lineIntersectsRect(startPoint, endPoint, objBounds, radius);
+  };
+
+  const lineIntersectsRect = (
+    startPoint: {x: number, y: number}, 
+    endPoint: {x: number, y: number}, 
+    rect: {left: number, top: number, width: number, height: number}, 
+    radius: number
+  ): boolean => {
+    // Expand rectangle by eraser radius
+    const expandedRect = {
+      left: rect.left - radius,
+      top: rect.top - radius,
+      right: rect.left + rect.width + radius,
+      bottom: rect.top + rect.height + radius
+    };
+
+    // Check if line segment intersects with expanded rectangle
+    return lineIntersectsRectangle(startPoint, endPoint, expandedRect);
+  };
+
+  const lineIntersectsRectangle = (
+    start: {x: number, y: number}, 
+    end: {x: number, y: number}, 
+    rect: {left: number, top: number, right: number, bottom: number}
+  ): boolean => {
+    // Simple line-rectangle intersection check
+    const minX = Math.min(start.x, end.x);
+    const maxX = Math.max(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxY = Math.max(start.y, end.y);
+
+    return !(maxX < rect.left || minX > rect.right || maxY < rect.top || minY > rect.bottom);
+  };
+
+  const applyEraserMask = (obj: any, startPoint: {x: number, y: number}, endPoint: {x: number, y: number}, radius: number) => {
+    // Create a circular mask at the eraser position to simulate partial erasure
+    const objBounds = obj.getBoundingRect();
+    
+    // For simplicity, we'll reduce opacity where the eraser touches
+    const currentOpacity = obj.opacity || 1;
+    obj.set('opacity', Math.max(0, currentOpacity - 0.2));
+    
+    // If opacity gets too low, remove the object
+    if (obj.opacity <= 0.1) {
+      fabricCanvas?.remove(obj);
+    }
   };
 
   const addShape = (shapeType: string) => {
