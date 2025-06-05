@@ -151,28 +151,16 @@ export const Canvas = () => {
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
       console.log("Drawing mode enabled, brush color:", getThemeColor(activeColor), "width:", strokeWidth);
     } else if (activeTool === "eraser") {
-      setupEraserTool();
-      toast("Eraser activated! Drag to erase parts of objects!");
-    }
-    
-    fabricCanvas.renderAll();
-  }, [activeTool, activeColor, strokeWidth, fabricCanvas, theme]);
-
-  const setupEraserTool = () => {
-    if (!fabricCanvas) return;
-
-    // Remove any existing listeners first
-    fabricCanvas.off('mouse:down');
-    fabricCanvas.off('mouse:move'); 
-    fabricCanvas.off('mouse:up');
-
-    const handleMouseDown = (e: any) => {
-      if (activeTool !== "eraser") return;
-      setIsErasing(true);
-      const point = fabricCanvas.getPointer(e.e);
-      setEraserPath([point]);
-      console.log("Eraser started at:", point);
-    };
+      // Set up eraser mode
+      fabricCanvas.defaultCursor = 'crosshair';
+      toast("Reality Eraser activated! Click and drag to erase objects!");
+      
+      // Add mouse events for eraser
+      const handleMouseDown = (e: any) => {
+        if (activeTool !== "eraser") return;
+        setIsDrawing(true);
+        eraseAtPoint(e.pointer);
+      };
 
     const handleMouseMove = (e: any) => {
       if (activeTool !== "eraser" || !isErasing) return;
