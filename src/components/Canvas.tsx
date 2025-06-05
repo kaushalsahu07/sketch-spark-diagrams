@@ -1,5 +1,6 @@
+
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Line, Textbox, Path, PencilBrush, EraserBrush } from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
@@ -8,7 +9,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 
-export type Tool = "select" | "draw" | "rectangle" | "circle" | "line" | "text" | "arrow";
+export type Tool = "select" | "draw" | "eraser" | "rectangle" | "circle" | "line" | "text" | "arrow";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -135,18 +136,23 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    console.log("Setting drawing mode:", activeTool === "draw");
+    console.log("Setting drawing mode:", activeTool === "draw" || activeTool === "eraser");
     
-    fabricCanvas.isDrawingMode = activeTool === "draw";
+    fabricCanvas.isDrawingMode = activeTool === "draw" || activeTool === "eraser";
     fabricCanvas.selection = activeTool === "select";
     
     if (activeTool === "draw") {
-      if (!fabricCanvas.freeDrawingBrush) {
+      if (!fabricCanvas.freeDrawingBrush || !(fabricCanvas.freeDrawingBrush instanceof PencilBrush)) {
         fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
       }
       fabricCanvas.freeDrawingBrush.color = getThemeColor(activeColor);
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
       console.log("Drawing mode enabled, brush color:", getThemeColor(activeColor), "width:", strokeWidth);
+    } else if (activeTool === "eraser") {
+      fabricCanvas.freeDrawingBrush = new EraserBrush(fabricCanvas);
+      fabricCanvas.freeDrawingBrush.width = strokeWidth * 3; // Make eraser bigger
+      console.log("Eraser mode enabled, width:", strokeWidth * 3);
+      toast("Reality Eraser activated! Drag to erase anything!");
     }
     
     fabricCanvas.renderAll();

@@ -13,7 +13,8 @@ import {
   ZoomIn,
   ZoomOut,
   Sparkles,
-  Download
+  Download,
+  Eraser
 } from "lucide-react";
 import { Tool } from "./Canvas";
 
@@ -39,6 +40,7 @@ export const Toolbar = ({
   const tools = [
     { id: "select" as Tool, icon: MousePointer, label: "Select" },
     { id: "draw" as Tool, icon: Pencil, label: "Draw" },
+    { id: "eraser" as Tool, icon: Eraser, label: "Reality Eraser" },
     { id: "rectangle" as Tool, icon: Square, label: "Rectangle" },
     { id: "circle" as Tool, icon: Circle, label: "Circle" },
     { id: "line" as Tool, icon: Minus, label: "Line" },
