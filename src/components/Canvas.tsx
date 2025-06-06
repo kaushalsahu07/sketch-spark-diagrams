@@ -26,6 +26,7 @@ export type Tool =
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const [fabricCanvas, setFabricCanvas] = useState<fabric.Canvas | null>(null);
   const [activeColor, setActiveColor] = useState("#1e40af");
   const [activeTool, setActiveTool] = useState<Tool>("select");
@@ -51,9 +52,15 @@ export const Canvas = () => {
     return theme === 'dark' ? '#ffffff' : '#000000';
   };
 
-  // Initialize canvas only once
+  // Initialize canvas only once with proper cleanup
   useEffect(() => {
     if (!canvasRef.current) return;
+
+    // Dispose existing canvas if it exists
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.dispose();
+      fabricCanvasRef.current = null;
+    }
 
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: window.innerWidth,
@@ -67,7 +74,9 @@ export const Canvas = () => {
     canvas.freeDrawingBrush.color = getThemeColor(activeColor);
     canvas.freeDrawingBrush.width = strokeWidth;
 
+    fabricCanvasRef.current = canvas;
     setFabricCanvas(canvas);
+    console.log("Canvas initialized successfully");
     toast("Canvas ready! Start creating your diagram!");
 
     const handleResize = () => {
@@ -99,8 +108,12 @@ export const Canvas = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+        fabricCanvasRef.current = null;
+      }
     };
-  }, []); // Empty dependency array for one-time initialization
+  }, []); // Keep empty dependency array but add proper cleanup
 
   // Handle theme changes without recreating canvas
   useEffect(() => {
@@ -150,7 +163,7 @@ export const Canvas = () => {
     }
     
     fabricCanvas.renderAll();
-  }, [activeColor, strokeWidth, theme]);
+  }, [activeColor, strokeWidth, theme, fabricCanvas]);
 
   // Eraser functionality
   const eraseObjectsAtPoint = (point: { x: number; y: number }) => {
@@ -256,7 +269,7 @@ export const Canvas = () => {
         fabricCanvas.off('mouse:up', handleMouseUp);
       };
     }
-  }, [activeTool, fabricCanvas, strokeWidth]);
+  }, [activeTool, fabricCanvas, strokeWidth, activeColor, isErasing]);
 
   const applyEraserEffect = (prevPoint: {x: number, y: number}, currentPoint: {x: number, y: number}) => {
     if (!fabricCanvas) return;
@@ -575,8 +588,6 @@ export const Canvas = () => {
       }
     }
   };
-  
-  // Remove the old applyEraserMask function as it's replaced by erasePathSegment
 
   const applyEraserMask = (pathObj: any, eraserPoint: {x: number, y: number}, radius: number) => {
     if (!fabricCanvas) return;
