@@ -597,13 +597,23 @@ export const Canvas = () => {
         hasBorders: activeTool === 'select',
       });
     });
-    
-    if (activeTool === "draw") {
-      if (!fabricCanvas.freeDrawingBrush || !(fabricCanvas.freeDrawingBrush instanceof fabric.PencilBrush)) {
-        fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
-      }
-      fabricCanvas.freeDrawingBrush.color = getThemeColor(activeColor);
-      fabricCanvas.freeDrawingBrush.width = strokeWidth;
+
+    // Set up eraser tool
+    if (activeTool === 'eraser') {
+      const handleEraserClick = (e: any) => {
+        if (!e.target) return;
+        
+        const objectToRemove = e.target;
+        fabricCanvas.remove(objectToRemove);
+        fabricCanvas.renderAll();
+        console.log('Object erased');
+      };
+
+      fabricCanvas.on('mouse:down', handleEraserClick);
+
+      return () => {
+        fabricCanvas.off('mouse:down', handleEraserClick);
+      };
     }
     
     fabricCanvas.renderAll();
@@ -649,6 +659,27 @@ export const Canvas = () => {
     setActiveColor(color);
     applyColorToSelected();
   };
+
+  // Handle object deletion
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete') && fabricCanvas.getActiveObject()) {
+        const activeObjects = fabricCanvas.getActiveObjects();
+        fabricCanvas.remove(...activeObjects);
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.renderAll();
+        toast("Object deleted");
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [fabricCanvas]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
