@@ -133,24 +133,11 @@ export const Canvas = () => {
     fabricCanvas.renderAll();
   }, [theme, fabricCanvas]);
 
-  // Handle color and stroke width updates
+  // Handle color and stroke width updates for drawing brush only
   useEffect(() => {
     if (!fabricCanvas) return;
 
     const themeColor = getThemeColor(activeColor);
-
-    // Update active object color if one is selected
-    const activeObject = fabricCanvas.getActiveObject();
-    if (activeObject) {
-      if (activeObject.type === 'path') {
-        activeObject.set({ stroke: themeColor });
-      } else {
-        activeObject.set({ 
-          fill: themeColor,
-          stroke: themeColor 
-        });
-      }
-    }
 
     // Update drawing brush
     if (fabricCanvas.freeDrawingBrush) {
@@ -160,6 +147,26 @@ export const Canvas = () => {
     
     fabricCanvas.renderAll();
   }, [activeColor, strokeWidth, theme, fabricCanvas]);
+
+  // Apply color to selected object when color is explicitly changed
+  const applyColorToSelected = () => {
+    if (!fabricCanvas) return;
+
+    const themeColor = getThemeColor(activeColor);
+    const activeObject = fabricCanvas.getActiveObject();
+    
+    if (activeObject) {
+      if (activeObject.type === 'path') {
+        activeObject.set({ stroke: themeColor });
+      } else {
+        activeObject.set({ 
+          fill: themeColor,
+          stroke: themeColor 
+        });
+      }
+      fabricCanvas.renderAll();
+    }
+  };
 
   // Helper function to create a regular polygon
   const createRegularPolygon = (centerX: number, centerY: number, sides: number, radius: number) => {
@@ -587,6 +594,12 @@ export const Canvas = () => {
     fabricCanvas.renderAll();
   };
 
+  // Handle color change
+  const handleColorChange = (color: string) => {
+    setActiveColor(color);
+    applyColorToSelected();
+  };
+
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
@@ -608,7 +621,7 @@ export const Canvas = () => {
       <div className="absolute top-4 right-4 z-10">
         <ColorPicker 
           color={activeColor} 
-          onChange={setActiveColor}
+          onChange={handleColorChange}
           strokeWidth={strokeWidth}
           onStrokeWidthChange={setStrokeWidth}
         />
