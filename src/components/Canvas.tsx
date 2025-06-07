@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import LoadingScreen from "./LoadingScreen";
 import * as fabric from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
@@ -36,6 +37,7 @@ export const Canvas = () => {
   const [showExport, setShowExport] = useState(false);
   const [eraserPath, setEraserPath] = useState<{x: number, y: number}[]>([]);
   const { theme } = useTheme();
+  const [loading, setLoading] = useState(true);
 
   // Shape drawing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -66,6 +68,43 @@ export const Canvas = () => {
       isDrawingMode: false,
     });
 
+    // Immediately load saved canvas data
+    const savedData = localStorage.getItem('canvasData');
+    if (savedData) {
+      canvas.loadFromJSON(savedData, () => {
+        canvas.renderAll();
+        // Displace all items: move each object to a random position, clamped to canvas
+        const objects = canvas.getObjects();
+        console.log(`Loaded ${objects.length} objects from localStorage`);
+        objects.forEach(obj => {
+          if (typeof obj.left === 'number' && typeof obj.top === 'number' && obj.width && obj.height) {
+            const maxLeft = Math.max(0, (canvas.width || 0) - obj.width * (obj.scaleX || 1));
+            const maxTop = Math.max(0, (canvas.height || 0) - obj.height * (obj.scaleY || 1));
+            obj.set({
+              left: Math.random() * maxLeft,
+              top: Math.random() * maxTop
+            });
+          }
+        });
+        canvas.renderAll();
+        setLoading(false);
+        console.log('Canvas data loaded and displaced automatically');
+      });
+    } else {
+      setLoading(false);
+    }
+
+    // Setup automatic saving
+    const saveToLocalStorage = () => {
+      const jsonData = canvas.toJSON();
+      localStorage.setItem('canvasData', JSON.stringify(jsonData));
+      console.log('Canvas saved to storage');
+    };
+
+    canvas.on('object:modified', saveToLocalStorage);
+    canvas.on('object:added', saveToLocalStorage);
+    canvas.on('object:removed', saveToLocalStorage);
+
     // Initialize the drawing brush
     canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
     canvas.freeDrawingBrush.color = getThemeColor(activeColor);
@@ -84,27 +123,13 @@ export const Canvas = () => {
       canvas.renderAll();
     };
 
-    // Handle keyboard events for delete functionality
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete') {
-        const activeObject = canvas.getActiveObject();
-        const activeObjects = canvas.getActiveObjects();
-        
-        if (activeObjects.length > 0) {
-          activeObjects.forEach(obj => canvas.remove(obj));
-          canvas.discardActiveObject();
-          canvas.renderAll();
-          toast("Selected objects deleted");
-        }
-      }
-    };
-
     window.addEventListener('resize', handleResize);
-    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('keydown', handleKeyDown);
+      canvas.off('object:modified', saveToLocalStorage);
+      canvas.off('object:added', saveToLocalStorage);
+      canvas.off('object:removed', saveToLocalStorage);
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
@@ -284,6 +309,7 @@ export const Canvas = () => {
       const objects = fabricCanvas.getObjects();
       const tempShape = objects.find(obj => (obj as any).isTemporary);
       if (tempShape) {
+
         fabricCanvas.remove(tempShape);
       }
 
@@ -615,62 +641,29 @@ export const Canvas = () => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    if (activeTool === "eraser") {
-      const handleMouseDown = (e: any) => {
-        const pointer = fabricCanvas.getPointer(e.e);
-        eraseObjectsAtPoint(pointer);
-      };
-
-      const handleMouseMove = (e: any) => {
-        const pointer = fabricCanvas.getPointer(e.e);
-        eraseObjectsAtPoint(pointer);
-      };
-
-      const handleMouseUp = () => {
-        fabricCanvas.renderAll();
-      };
-
-      fabricCanvas.on("mouse:down", handleMouseDown);
-      fabricCanvas.on("mouse:move", handleMouseMove);
-      fabricCanvas.on("mouse:up", handleMouseUp);
-
-      return () => {
-        fabricCanvas.off("mouse:down", handleMouseDown);
-        fabricCanvas.off("mouse:move", handleMouseMove);
-        fabricCanvas.off("mouse:up", handleMouseUp);
-      };
-    }
-  }, [activeTool, fabricCanvas]);
-
-  const eraseObjectsAtPoint = (point: { x: number; y: number }) => {
-    if (!fabricCanvas) return;
-
-    const eraserSize = strokeWidth * 2; // Adjust eraser size based on stroke width
-    const objects = fabricCanvas.getObjects();
-
-    objects.forEach((obj) => {
-      const objBounds = obj.getBoundingRect();
-
-      const intersects =
-        point.x >= objBounds.left - eraserSize &&
-        point.x <= objBounds.left + objBounds.width + eraserSize &&
-        point.y >= objBounds.top - eraserSize &&
-        point.y <= objBounds.top + objBounds.height + eraserSize;
-
-      if (intersects) {
-        fabricCanvas.remove(obj);
+    const loadCanvasFromLocalStorage = () => {
+      const savedCanvasData = localStorage.getItem("canvasData");
+      if (savedCanvasData) {
+        fabricCanvas.loadFromJSON(JSON.parse(savedCanvasData), () => {
+          fabricCanvas.renderAll();
+          console.log("Canvas loaded from local storage automatically");
+        });
       }
-    });
+    };
 
+    // Automatically load canvas data on initialization
+    loadCanvasFromLocalStorage();
+
+    // Ensure canvas is displayed immediately
     fabricCanvas.renderAll();
-  };
+  }, [fabricCanvas]);
 
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+      {loading && <LoadingScreen />}
       <canvas ref={canvasRef} className="absolute inset-0" />
-      
       {/* Floating Toolbar */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10">
         <Toolbar 
           activeTool={activeTool} 
           onToolClick={handleToolClick}
@@ -681,7 +674,6 @@ export const Canvas = () => {
           onShowExport={() => setShowExport(true)}
         />
       </div>
-
       {/* Color Picker & Settings */}
       <div className="absolute top-4 right-4 z-10">
         <ColorPicker 
@@ -691,12 +683,10 @@ export const Canvas = () => {
           onStrokeWidthChange={setStrokeWidth}
         />
       </div>
-
       {/* Theme Toggle */}
       <div className="absolute top-4 left-4 z-10">
         <ThemeToggle />
       </div>
-
       {/* AI Assistant Panel */}
       {showAI && (
         <AIAssistant 
@@ -705,7 +695,6 @@ export const Canvas = () => {
           activeColor={getThemeColor(activeColor)}
         />
       )}
-
       {/* Export Panel */}
       {showExport && (
         <ExportPanel 
