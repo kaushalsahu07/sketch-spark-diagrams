@@ -71,25 +71,37 @@ export const Canvas = () => {
     // Immediately load saved canvas data
     const savedData = localStorage.getItem('canvasData');
     if (savedData) {
-      canvas.loadFromJSON(savedData, () => {
-        canvas.renderAll();
-        // Displace all items: move each object to a random position, clamped to canvas
-        const objects = canvas.getObjects();
-        console.log(`Loaded ${objects.length} objects from localStorage`);
-        objects.forEach(obj => {
-          if (typeof obj.left === 'number' && typeof obj.top === 'number' && obj.width && obj.height) {
-            const maxLeft = Math.max(0, (canvas.width || 0) - obj.width * (obj.scaleX || 1));
-            const maxTop = Math.max(0, (canvas.height || 0) - obj.height * (obj.scaleY || 1));
-            obj.set({
-              left: Math.random() * maxLeft,
-              top: Math.random() * maxTop
+      try {
+        canvas.loadFromJSON(savedData, () => {
+          try {
+            canvas.renderAll();
+            // Displace all items: move each object to a random position, clamped to canvas
+            const objects = canvas.getObjects();
+            console.log(`Loaded ${objects.length} objects from localStorage`);
+            objects.forEach(obj => {
+              if (typeof obj.left === 'number' && typeof obj.top === 'number' && obj.width && obj.height) {
+                const maxLeft = Math.max(0, (canvas.width || 0) - obj.width * (obj.scaleX || 1));
+                const maxTop = Math.max(0, (canvas.height || 0) - obj.height * (obj.scaleY || 1));
+                obj.set({
+                  left: Math.random() * maxLeft,
+                  top: Math.random() * maxTop
+                });
+              }
             });
+            canvas.renderAll();
+            setLoading(false);
+            console.log('Canvas data loaded and displaced automatically');
+          } catch (err) {
+            console.error('Error displacing objects:', err);
+            setLoading(false);
           }
         });
-        canvas.renderAll();
+        // Fallback: hide loading after 5 seconds in case callback never fires
+        setTimeout(() => setLoading(false), 5000);
+      } catch (err) {
+        console.error('Error loading canvas data:', err);
         setLoading(false);
-        console.log('Canvas data loaded and displaced automatically');
-      });
+      }
     } else {
       setLoading(false);
     }
