@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { Toolbar } from "./Toolbar";
@@ -157,12 +156,25 @@ export const Canvas = () => {
     
     if (activeObject) {
       if (activeObject.type === 'path') {
+        // For drawn paths, change stroke color
         activeObject.set({ stroke: themeColor });
+      } else if (activeObject.type === 'textbox' || activeObject.type === 'text') {
+        // For text objects, change fill color
+        activeObject.set({ fill: themeColor });
       } else {
-        activeObject.set({ 
-          fill: themeColor,
-          stroke: themeColor 
-        });
+        // For shapes (rectangle, circle, etc.), only change stroke if fill is transparent
+        // This preserves the original fill state of the object
+        const currentFill = activeObject.fill;
+        if (currentFill === 'transparent' || currentFill === '' || !currentFill) {
+          // Keep transparent fill, only change stroke
+          activeObject.set({ stroke: themeColor });
+        } else {
+          // Object was intentionally filled, change both fill and stroke
+          activeObject.set({ 
+            fill: themeColor,
+            stroke: themeColor 
+          });
+        }
       }
       fabricCanvas.renderAll();
     }
