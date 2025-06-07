@@ -612,6 +612,59 @@ export const Canvas = () => {
     applyColorToSelected();
   };
 
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    if (activeTool === "eraser") {
+      const handleMouseDown = (e: any) => {
+        const pointer = fabricCanvas.getPointer(e.e);
+        eraseObjectsAtPoint(pointer);
+      };
+
+      const handleMouseMove = (e: any) => {
+        const pointer = fabricCanvas.getPointer(e.e);
+        eraseObjectsAtPoint(pointer);
+      };
+
+      const handleMouseUp = () => {
+        fabricCanvas.renderAll();
+      };
+
+      fabricCanvas.on("mouse:down", handleMouseDown);
+      fabricCanvas.on("mouse:move", handleMouseMove);
+      fabricCanvas.on("mouse:up", handleMouseUp);
+
+      return () => {
+        fabricCanvas.off("mouse:down", handleMouseDown);
+        fabricCanvas.off("mouse:move", handleMouseMove);
+        fabricCanvas.off("mouse:up", handleMouseUp);
+      };
+    }
+  }, [activeTool, fabricCanvas]);
+
+  const eraseObjectsAtPoint = (point: { x: number; y: number }) => {
+    if (!fabricCanvas) return;
+
+    const eraserSize = strokeWidth * 2; // Adjust eraser size based on stroke width
+    const objects = fabricCanvas.getObjects();
+
+    objects.forEach((obj) => {
+      const objBounds = obj.getBoundingRect();
+
+      const intersects =
+        point.x >= objBounds.left - eraserSize &&
+        point.x <= objBounds.left + objBounds.width + eraserSize &&
+        point.y >= objBounds.top - eraserSize &&
+        point.y <= objBounds.top + objBounds.height + eraserSize;
+
+      if (intersects) {
+        fabricCanvas.remove(obj);
+      }
+    });
+
+    fabricCanvas.renderAll();
+  };
+
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
