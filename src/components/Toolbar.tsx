@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   HoverCard,
-  HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
@@ -80,17 +79,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
         <Icon className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
       </Button>
     </HoverCardTrigger>
-    {tooltip && (
-      <HoverCardContent side="bottom" className="p-3 max-w-xs bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-gray-200/20 dark:border-gray-700/20">
-        <div className="flex gap-2 items-start">
-          <Info className="h-4 w-4 text-gray-500 mt-0.5" />
-          <div>
-            <h4 className="font-medium mb-1">{label}</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{tooltip}</p>
-          </div>
-        </div>
-      </HoverCardContent>
-    )}
+    {/* Removed HoverCardContent */}
   </HoverCard>
 );
 
@@ -202,17 +191,7 @@ export const Toolbar = ({
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          <HoverCardContent side="bottom" className="p-3 max-w-xs bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-gray-200/20 dark:border-gray-700/20">
-            <div className="flex gap-2 items-start">
-              <Info className="h-4 w-4 text-gray-500 mt-0.5" />
-              <div>
-                <h4 className="font-medium mb-1">Shape Tools</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Choose from various shapes to add to your diagram. Click and drag to draw shapes with perfect proportions.
-                </p>
-              </div>
-            </div>
-          </HoverCardContent>
+          {/* Removed HoverCardContent */}
         </HoverCard>
 
         <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
