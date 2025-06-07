@@ -26,7 +26,7 @@ export const ColorPicker = ({ color, onChange, strokeWidth, onStrokeWidthChange 
   };
 
   return (
-    <div className="fixed top-4 right-4 z-40">
+    <div className="fixed top-6 right-4 z-40">
       <div className="bg-gradient-to-b from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-black/5 dark:shadow-white/5 border border-gray-200/20 dark:border-gray-700/20 p-3 flex items-center gap-3">
         <Popover>
           <PopoverTrigger asChild>
