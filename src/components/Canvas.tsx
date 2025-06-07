@@ -41,7 +41,6 @@ export const Canvas = () => {
   // Shape drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
-  const [activeShape, setActiveShape] = useState<any>(null);
 
   // Get theme-appropriate color
   const getThemeColor = (color: string) => {
@@ -51,7 +50,7 @@ export const Canvas = () => {
     return theme === 'dark' ? '#ffffff' : '#000000';
   };
 
-  // Initialize canvas only once with proper cleanup
+  // Initialize canvas
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -112,17 +111,15 @@ export const Canvas = () => {
         fabricCanvasRef.current = null;
       }
     };
-  }, []); // Keep empty dependency array but add proper cleanup
+  }, []);
 
-  // Handle theme changes without recreating canvas
+  // Handle theme changes
   useEffect(() => {
     if (!fabricCanvas) return;
     
-    // Save the current canvas state
     const objects = fabricCanvas.getObjects();
     const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
     
-    // Update canvas background and object colors for theme
     fabricCanvas.backgroundColor = canvasBackgroundColor;
     objects.forEach(obj => {
       if (obj.fill === '#000000' || obj.fill === '#ffffff') {
@@ -164,146 +161,13 @@ export const Canvas = () => {
     fabricCanvas.renderAll();
   }, [activeColor, strokeWidth, theme, fabricCanvas]);
 
-  // Function to create shapes based on tool type
-  const createShape = (
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number,
-    shapeType: Tool
-  ) => {
-    if (!fabricCanvas) return null;
-  
-    const width = Math.abs(endX - startX);
-    const height = Math.abs(endY - startY);
-    const left = Math.min(startX, endX);
-    const top = Math.min(startY, endY);
-    const centerX = (startX + endX) / 2;
-    const centerY = (startY + endY) / 2;
-  
-    let shape;
-    const shapeOptions = {
-      fill: 'transparent',
-      stroke: getThemeColor(activeColor),
-      strokeWidth,
-      selectable: true,
-      evented: true,
-      hasControls: true,
-      hasBorders: true,
-    };
-  
-    switch (shapeType) {
-      case 'rectangle':
-        shape = new fabric.Rect({
-          left,
-          top,
-          width,
-          height,
-          ...shapeOptions,
-        });
-        break;
-  
-      case 'circle':
-        const radius = Math.max(width, height) / 2;
-        shape = new fabric.Circle({
-          left: centerX - radius,
-          top: centerY - radius,
-          radius,
-          ...shapeOptions,
-        });
-        break;
-  
-      case 'line':
-        shape = new fabric.Line([startX, startY, endX, endY], {
-          stroke: getThemeColor(activeColor),
-          strokeWidth,
-          selectable: true,
-          evented: true,
-          hasControls: true,
-          hasBorders: true,
-        });
-        break;
-  
-      case 'triangle':
-        shape = new fabric.Triangle({
-          left,
-          top,
-          width,
-          height,
-          ...shapeOptions,
-        });
-        break;
-  
-      case 'star':
-        const starPoints = createStarPoints(
-          0, 0, // relative to shape origin
-          5, // 5-pointed star
-          Math.max(width, height) / 2,
-          Math.max(width, height) / 4
-        );
-        shape = new fabric.Polygon(starPoints, {
-          ...shapeOptions,
-          left: centerX - Math.max(width, height) / 2,
-          top: centerY - Math.max(width, height) / 2,
-        });
-        break;
-  
-      case 'pentagon':
-        const pentagonPoints = createRegularPolygon(
-          0, 0, // relative to shape origin
-          5,
-          Math.max(width, height) / 2
-        );
-        shape = new fabric.Polygon(pentagonPoints, {
-          ...shapeOptions,
-          left: centerX - Math.max(width, height) / 2,
-          top: centerY - Math.max(width, height) / 2,
-        });
-        break;
-  
-      case 'hexagon':
-        const hexagonPoints = createRegularPolygon(
-          0, 0, // relative to shape origin
-          6,
-          Math.max(width, height) / 2
-        );
-        shape = new fabric.Polygon(hexagonPoints, {
-          ...shapeOptions,
-          left: centerX - Math.max(width, height) / 2,
-          top: centerY - Math.max(width, height) / 2,
-        });
-        break;
-  
-      case 'diamond':
-        const diamondPoints = createDiamondPoints(
-          0, 0, // relative to shape origin
-          width,
-          height
-        );
-        shape = new fabric.Polygon(diamondPoints, {
-          ...shapeOptions,
-          left: centerX - width / 2,
-          top: centerY - height / 2,
-        });
-        break;
-    }
-  
-    if (shape) {
-      fabricCanvas.add(shape);
-      fabricCanvas.renderAll();
-      console.log(`Created ${shapeType} shape:`, shape);
-      return shape;
-    }
-    return null;
-  };
-
   // Helper function to create a regular polygon
   const createRegularPolygon = (centerX: number, centerY: number, sides: number, radius: number) => {
     const points: { x: number; y: number }[] = [];
     const angleStep = (2 * Math.PI) / sides;
     
     for (let i = 0; i < sides; i++) {
-      const angle = i * angleStep - Math.PI / 2; // Start from top
+      const angle = i * angleStep - Math.PI / 2;
       points.push({
         x: centerX + radius * Math.cos(angle),
         y: centerY + radius * Math.sin(angle)
@@ -320,7 +184,7 @@ export const Canvas = () => {
 
     for (let i = 0; i < points * 2; i++) {
       const radius = i % 2 === 0 ? outerRadius : innerRadius;
-      const angle = i * angleStep - Math.PI / 2; // Start from top
+      const angle = i * angleStep - Math.PI / 2;
       starPoints.push({
         x: centerX + radius * Math.cos(angle),
         y: centerY + radius * Math.sin(angle)
@@ -351,6 +215,7 @@ export const Canvas = () => {
 
     const handleMouseDown = (e: any) => {
       const pointer = fabricCanvas.getPointer(e.e);
+      console.log(`Mouse down at: x=${pointer.x}, y=${pointer.y}, tool=${activeTool}`);
       
       // Handle text tool
       if (activeTool === 'text') {
@@ -372,172 +237,273 @@ export const Canvas = () => {
         textbox.selectAll();
         fabricCanvas.renderAll();
         setActiveTool('select');
+        toast("Text added! Click to edit.");
         return;
       }
 
       // Handle shape tools
       if (isShapeTool(activeTool)) {
         // Don't start drawing if clicking on an existing object
-        if (e.target) return;
+        if (e.target) {
+          console.log("Clicked on existing object, not creating shape");
+          return;
+        }
         
         setIsDrawing(true);
         setStartPoint(pointer);
-        console.log(`Starting to draw ${activeTool} at:`, pointer);
-        
-        // Create initial shape with minimal size
-        const shape = createShape(
-          pointer.x,
-          pointer.y,
-          pointer.x + 1,
-          pointer.y + 1,
-          activeTool
-        );
-        setActiveShape(shape);
+        console.log(`Starting to draw ${activeTool}`);
         return;
       }
     };
 
     const handleMouseMove = (e: any) => {
-      if (!isDrawing || !startPoint || !activeShape || !isShapeTool(activeTool)) return;
+      if (!isDrawing || !startPoint || !isShapeTool(activeTool)) return;
 
       const pointer = fabricCanvas.getPointer(e.e);
       
+      // Remove any temporary shape
+      const objects = fabricCanvas.getObjects();
+      const tempShape = objects.find(obj => (obj as any).isTemporary);
+      if (tempShape) {
+        fabricCanvas.remove(tempShape);
+      }
+
       // Calculate dimensions
-      const width = pointer.x - startPoint.x;
-      const height = pointer.y - startPoint.y;
-      const absWidth = Math.abs(width);
-      const absHeight = Math.abs(height);
+      const width = Math.abs(pointer.x - startPoint.x);
+      const height = Math.abs(pointer.y - startPoint.y);
       const left = Math.min(pointer.x, startPoint.x);
       const top = Math.min(pointer.y, startPoint.y);
       const centerX = (pointer.x + startPoint.x) / 2;
       const centerY = (pointer.y + startPoint.y) / 2;
 
-      // Update shape based on type
+      let shape;
+      const shapeOptions = {
+        fill: 'transparent',
+        stroke: getThemeColor(activeColor),
+        strokeWidth,
+        selectable: false,
+        evented: false,
+        isTemporary: true,
+      };
+
+      // Create preview shape
       switch (activeTool) {
         case 'rectangle':
-          activeShape.set({
+          shape = new fabric.Rect({
             left,
             top,
-            width: absWidth,
-            height: absHeight,
+            width,
+            height,
+            ...shapeOptions,
           });
           break;
         case 'circle': {
-          const radius = Math.sqrt(
-            Math.pow(pointer.x - startPoint.x, 2) +
-            Math.pow(pointer.y - startPoint.y, 2)
-          ) / 2;
-          activeShape.set({
+          const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
+          shape = new fabric.Circle({
             left: centerX - radius,
             top: centerY - radius,
             radius: radius,
+            ...shapeOptions,
           });
           break;
         }
         case 'line':
-          activeShape.set({
-            x1: startPoint.x,
-            y1: startPoint.y,
-            x2: pointer.x,
-            y2: pointer.y,
+          shape = new fabric.Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
+            stroke: getThemeColor(activeColor),
+            strokeWidth,
+            selectable: false,
+            evented: false,
+            isTemporary: true,
           });
           break;
         case 'triangle':
-          activeShape.set({
+          shape = new fabric.Triangle({
             left,
             top,
-            width: absWidth,
-            height: absHeight,
+            width,
+            height,
+            ...shapeOptions,
           });
           break;
         case 'star': {
-          const starPoints = createStarPoints(
-            0, 0, // relative to shape origin
-            5,
-            Math.max(absWidth, absHeight) / 2,
-            Math.max(absWidth, absHeight) / 4
-          );
-          activeShape.set({ 
-            points: starPoints,
-            left: centerX - Math.max(absWidth, absHeight) / 2,
-            top: centerY - Math.max(absWidth, absHeight) / 2,
+          const radius = Math.max(width, height) / 2;
+          const starPoints = createStarPoints(0, 0, 5, radius, radius / 2);
+          shape = new fabric.Polygon(starPoints, {
+            ...shapeOptions,
+            left: centerX - radius,
+            top: centerY - radius,
           });
           break;
         }
         case 'pentagon': {
-          const pentagonPoints = createRegularPolygon(
-            0, 0, // relative to shape origin
-            5,
-            Math.max(absWidth, absHeight) / 2
-          );
-          activeShape.set({ 
-            points: pentagonPoints,
-            left: centerX - Math.max(absWidth, absHeight) / 2,
-            top: centerY - Math.max(absWidth, absHeight) / 2,
+          const radius = Math.max(width, height) / 2;
+          const pentagonPoints = createRegularPolygon(0, 0, 5, radius);
+          shape = new fabric.Polygon(pentagonPoints, {
+            ...shapeOptions,
+            left: centerX - radius,
+            top: centerY - radius,
           });
           break;
         }
         case 'hexagon': {
-          const hexagonPoints = createRegularPolygon(
-            0, 0, // relative to shape origin
-            6,
-            Math.max(absWidth, absHeight) / 2
-          );
-          activeShape.set({ 
-            points: hexagonPoints,
-            left: centerX - Math.max(absWidth, absHeight) / 2,
-            top: centerY - Math.max(absWidth, absHeight) / 2,
+          const radius = Math.max(width, height) / 2;
+          const hexagonPoints = createRegularPolygon(0, 0, 6, radius);
+          shape = new fabric.Polygon(hexagonPoints, {
+            ...shapeOptions,
+            left: centerX - radius,
+            top: centerY - radius,
           });
           break;
         }
         case 'diamond': {
-          const diamondPoints = createDiamondPoints(
-            0, 0, // relative to shape origin
-            absWidth,
-            absHeight
-          );
-          activeShape.set({ 
-            points: diamondPoints,
-            left: centerX - absWidth / 2,
-            top: centerY - absHeight / 2,
+          const diamondPoints = createDiamondPoints(0, 0, width, height);
+          shape = new fabric.Polygon(diamondPoints, {
+            ...shapeOptions,
+            left: centerX - width / 2,
+            top: centerY - height / 2,
           });
           break;
         }
       }
 
-      fabricCanvas.renderAll();
+      if (shape) {
+        fabricCanvas.add(shape);
+        fabricCanvas.renderAll();
+      }
     };
 
-    const handleMouseUp = () => {
-      if (!isDrawing || !isShapeTool(activeTool)) return;
+    const handleMouseUp = (e: any) => {
+      if (!isDrawing || !startPoint || !isShapeTool(activeTool)) return;
+      
+      const pointer = fabricCanvas.getPointer(e.e);
+      console.log(`Mouse up at: x=${pointer.x}, y=${pointer.y}`);
       
       setIsDrawing(false);
-      setStartPoint(null);
       
-      if (activeShape) {
-        // Ensure the shape has minimum dimensions
-        const bounds = activeShape.getBoundingRect();
-        if (bounds.width < 5 && bounds.height < 5) {
-          fabricCanvas.remove(activeShape);
-          console.log("Removed shape - too small");
-        } else {
-          // Make sure the shape is properly configured
-          activeShape.set({
+      // Remove temporary shape
+      const objects = fabricCanvas.getObjects();
+      const tempShape = objects.find(obj => (obj as any).isTemporary);
+      if (tempShape) {
+        fabricCanvas.remove(tempShape);
+      }
+      
+      // Calculate final dimensions
+      const width = Math.abs(pointer.x - startPoint.x);
+      const height = Math.abs(pointer.y - startPoint.y);
+      
+      // Only create shape if it's big enough (reduced minimum size)
+      if (width < 3 && height < 3) {
+        console.log("Shape too small, not creating");
+        setStartPoint(null);
+        return;
+      }
+      
+      const left = Math.min(pointer.x, startPoint.x);
+      const top = Math.min(pointer.y, startPoint.y);
+      const centerX = (pointer.x + startPoint.x) / 2;
+      const centerY = (pointer.y + startPoint.y) / 2;
+
+      let finalShape;
+      const finalShapeOptions = {
+        fill: 'transparent',
+        stroke: getThemeColor(activeColor),
+        strokeWidth,
+        selectable: true,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
+      };
+
+      // Create final shape
+      switch (activeTool) {
+        case 'rectangle':
+          finalShape = new fabric.Rect({
+            left,
+            top,
+            width,
+            height,
+            ...finalShapeOptions,
+          });
+          break;
+        case 'circle': {
+          const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
+          finalShape = new fabric.Circle({
+            left: centerX - radius,
+            top: centerY - radius,
+            radius: radius,
+            ...finalShapeOptions,
+          });
+          break;
+        }
+        case 'line':
+          finalShape = new fabric.Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
+            stroke: getThemeColor(activeColor),
+            strokeWidth,
             selectable: true,
             evented: true,
             hasControls: true,
             hasBorders: true,
           });
-          fabricCanvas.setActiveObject(activeShape);
-          console.log(`Completed ${activeTool} shape:`, activeShape);
-          toast(`${activeTool} created!`);
+          break;
+        case 'triangle':
+          finalShape = new fabric.Triangle({
+            left,
+            top,
+            width,
+            height,
+            ...finalShapeOptions,
+          });
+          break;
+        case 'star': {
+          const radius = Math.max(width, height) / 2;
+          const starPoints = createStarPoints(0, 0, 5, radius, radius / 2);
+          finalShape = new fabric.Polygon(starPoints, {
+            ...finalShapeOptions,
+            left: centerX - radius,
+            top: centerY - radius,
+          });
+          break;
+        }
+        case 'pentagon': {
+          const radius = Math.max(width, height) / 2;
+          const pentagonPoints = createRegularPolygon(0, 0, 5, radius);
+          finalShape = new fabric.Polygon(pentagonPoints, {
+            ...finalShapeOptions,
+            left: centerX - radius,
+            top: centerY - radius,
+          });
+          break;
+        }
+        case 'hexagon': {
+          const radius = Math.max(width, height) / 2;
+          const hexagonPoints = createRegularPolygon(0, 0, 6, radius);
+          finalShape = new fabric.Polygon(hexagonPoints, {
+            ...finalShapeOptions,
+            left: centerX - radius,
+            top: centerY - radius,
+          });
+          break;
+        }
+        case 'diamond': {
+          const diamondPoints = createDiamondPoints(0, 0, width, height);
+          finalShape = new fabric.Polygon(diamondPoints, {
+            ...finalShapeOptions,
+            left: centerX - width / 2,
+            top: centerY - height / 2,
+          });
+          break;
         }
       }
+
+      if (finalShape) {
+        fabricCanvas.add(finalShape);
+        fabricCanvas.setActiveObject(finalShape);
+        fabricCanvas.renderAll();
+        console.log(`Created ${activeTool} shape successfully`);
+        toast(`${activeTool} created!`);
+      }
       
-      setActiveShape(null);
-      fabricCanvas.renderAll();
-      
-      // Switch to select tool after creating a shape
+      setStartPoint(null);
       setActiveTool('select');
     };
 
@@ -550,7 +516,7 @@ export const Canvas = () => {
       fabricCanvas.off('mouse:move', handleMouseMove);
       fabricCanvas.off('mouse:up', handleMouseUp);
     };
-  }, [fabricCanvas, activeTool, isDrawing, startPoint, activeShape, activeColor, strokeWidth]);
+  }, [fabricCanvas, activeTool, isDrawing, startPoint, activeColor, strokeWidth]);
 
   // Update tool setup
   useEffect(() => {
