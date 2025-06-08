@@ -1,9 +1,11 @@
+
 import { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
 import { ExportPanel } from "./ExportPanel";
+import { LeftSidebar } from "./LeftSidebar";
 import { toast } from "sonner";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
