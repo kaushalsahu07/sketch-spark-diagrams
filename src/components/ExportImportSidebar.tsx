@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Upload, FileImage, FileText, Share2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
+import * as fabric from "fabric";
 
 interface ExportImportSidebarProps {
   canvas: fabric.Canvas | null;

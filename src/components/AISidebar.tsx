@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Bot, Send, Sparkles } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import * as fabric from "fabric";
 
 interface AISidebarProps {
   canvas: fabric.Canvas | null;

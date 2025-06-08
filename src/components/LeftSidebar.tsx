@@ -17,6 +17,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { AISidebar } from "./AISidebar";
 import { ExportImportSidebar } from "./ExportImportSidebar";
 import { ColorPicker } from "./ColorPicker";
+import * as fabric from "fabric";
 
 interface LeftSidebarProps {
   canvas: fabric.Canvas | null;
