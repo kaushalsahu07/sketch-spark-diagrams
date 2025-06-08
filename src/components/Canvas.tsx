@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import LoadingScreen from "./LoadingScreen";
 import * as fabric from "fabric";
 import { Toolbar } from "./Toolbar";
 import { ColorPicker } from "./ColorPicker";
@@ -37,7 +36,6 @@ export const Canvas = () => {
   const [showExport, setShowExport] = useState(false);
   const [eraserPath, setEraserPath] = useState<{x: number, y: number}[]>([]);
   const { theme } = useTheme();
-  const [loading, setLoading] = useState(true);
 
   // Shape drawing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -71,39 +69,23 @@ export const Canvas = () => {
     // Immediately load saved canvas data
     const savedData = localStorage.getItem('canvasData');
     if (savedData) {
-      try {
-        canvas.loadFromJSON(savedData, () => {
-          try {
-            canvas.renderAll();
-            // Displace all items: move each object to a random position, clamped to canvas
-            const objects = canvas.getObjects();
-            console.log(`Loaded ${objects.length} objects from localStorage`);
-            objects.forEach(obj => {
-              if (typeof obj.left === 'number' && typeof obj.top === 'number' && obj.width && obj.height) {
-                const maxLeft = Math.max(0, (canvas.width || 0) - obj.width * (obj.scaleX || 1));
-                const maxTop = Math.max(0, (canvas.height || 0) - obj.height * (obj.scaleY || 1));
-                obj.set({
-                  left: Math.random() * maxLeft,
-                  top: Math.random() * maxTop
-                });
-              }
+      canvas.loadFromJSON(savedData, () => {
+        canvas.renderAll();
+        const objects = canvas.getObjects();
+        console.log(`Loaded ${objects.length} objects from localStorage`);
+        objects.forEach(obj => {
+          if (typeof obj.left === 'number' && typeof obj.top === 'number' && obj.width && obj.height) {
+            const maxLeft = Math.max(0, (canvas.width || 0) - obj.width * (obj.scaleX || 1));
+            const maxTop = Math.max(0, (canvas.height || 0) - obj.height * (obj.scaleY || 1));
+            obj.set({
+              left: Math.random() * maxLeft,
+              top: Math.random() * maxTop
             });
-            canvas.renderAll();
-            setLoading(false);
-            console.log('Canvas data loaded and displaced automatically');
-          } catch (err) {
-            console.error('Error displacing objects:', err);
-            setLoading(false);
           }
         });
-        // Fallback: hide loading after 5 seconds in case callback never fires
-        setTimeout(() => setLoading(false), 5000);
-      } catch (err) {
-        console.error('Error loading canvas data:', err);
-        setLoading(false);
-      }
-    } else {
-      setLoading(false);
+        canvas.renderAll();
+        console.log('Canvas data loaded and displaced automatically');
+      });
     }
 
     // Setup automatic saving
@@ -703,7 +685,6 @@ export const Canvas = () => {
 
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      {loading && <LoadingScreen />}
       <canvas ref={canvasRef} className="absolute inset-0" />
       {/* Floating Toolbar */}
       <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10">
