@@ -136,76 +136,105 @@ export const ExportPanel = ({ canvas, onClose }: ExportPanelProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-96 p-6 bg-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-green-600" />
-            <h3 className="text-lg font-semibold">Export & Share</h3>
+    <div className="fixed inset-0 bg-black/20 dark:bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center">
+      <Card className="w-full max-w-2xl mx-4 bg-white dark:bg-slate-900 shadow-lg dark:shadow-slate-900/50 border dark:border-slate-800">
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Export & Import</h2>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onClose}
+              className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
+            >
+              <X className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Project Name
-            </label>
-            <Input
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Enter project name"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Import & Export Options</h4>
-            
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImport}
-              accept=".json"
-              className="hidden"
-            />
-            
-            <div className="bg-yellow-50 p-3 rounded-md mb-3">
-              <div className="flex items-start">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 mr-2" />
-                <p className="text-xs text-yellow-800">
-                  Warning: Importing a file will clear your current canvas. Please export your current work before importing if you want to keep it.
-                </p>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Project Name</label>
+              <Input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 
+                  focus:border-blue-500 dark:focus:border-blue-400 rounded-xl
+                  text-slate-900 dark:text-slate-100"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Button
+                onClick={exportAsPNG}
+                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80
+                  text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700
+                  rounded-xl p-4 flex items-center gap-3 transform transition-all duration-200
+                  hover:scale-105 active:scale-95 shadow dark:shadow-slate-900/50"
+              >
+                <Image className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                Export as PNG
+              </Button>
+
+              <Button
+                onClick={exportAsSVG}
+                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80
+                  text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700
+                  rounded-xl p-4 flex items-center gap-3 transform transition-all duration-200
+                  hover:scale-105 active:scale-95 shadow dark:shadow-slate-900/50"
+              >
+                <FileText className="w-5 h-5 text-green-600 dark:text-green-400" />
+                Export as SVG
+              </Button>
+
+              <Button
+                onClick={exportAsJSON}
+                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80
+                  text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700
+                  rounded-xl p-4 flex items-center gap-3 transform transition-all duration-200
+                  hover:scale-105 active:scale-95 shadow dark:shadow-slate-900/50"
+              >
+                <Save className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                Export as JSON
+              </Button>
+
+              <div className="relative">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImport}
+                  accept=".json"
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80
+                    text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700
+                    rounded-xl p-4 flex items-center gap-3 transform transition-all duration-200
+                    hover:scale-105 active:scale-95 shadow dark:shadow-slate-900/50"
+                >
+                  <Upload className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  Import from JSON
+                </Button>
               </div>
             </div>
-            
-            <Button onClick={triggerFileInput} variant="outline" className="w-full justify-start">
-              <Upload className="h-4 w-4 mr-2" />
-              Import Project (JSON)
-            </Button>
 
-            <Button onClick={exportAsJSON} variant="outline" className="w-full justify-start text-blue-600">
-              <Save className="h-4 w-4 mr-2" />
-              Export as JSON (Editable)
-            </Button>
-
-            <div className="border-t border-gray-200 my-2"></div>
-
-            <Button onClick={exportAsPNG} variant="outline" className="w-full justify-start">
-              <Image className="h-4 w-4 mr-2" />
-              Export as PNG
-            </Button>
-            
-            <Button onClick={exportAsSVG} variant="outline" className="w-full justify-start">
-              <FileText className="h-4 w-4 mr-2" />
-              Export as SVG
-            </Button>
-
-            <div className="mt-3 text-xs text-gray-500 bg-gray-50 p-2 rounded">
-              <p>Note: Only JSON format preserves editability. PNG and SVG exports are for viewing purposes only and cannot be imported for editing.</p>
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800/50">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Note on Export
+                  </p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300/80">
+                    SVG and PNG exports maintain visual fidelity but cannot be re-imported. Use JSON format to save editable diagrams.
+                  </p>
+                </div>
+              </div>
             </div>
-            
           </div>
         </div>
       </Card>

@@ -71,20 +71,7 @@ export const Canvas = () => {
     if (savedData) {
       canvas.loadFromJSON(savedData, () => {
         canvas.renderAll();
-        const objects = canvas.getObjects();
-        console.log(`Loaded ${objects.length} objects from localStorage`);
-        objects.forEach(obj => {
-          if (typeof obj.left === 'number' && typeof obj.top === 'number' && obj.width && obj.height) {
-            const maxLeft = Math.max(0, (canvas.width || 0) - obj.width * (obj.scaleX || 1));
-            const maxTop = Math.max(0, (canvas.height || 0) - obj.height * (obj.scaleY || 1));
-            obj.set({
-              left: Math.random() * maxLeft,
-              top: Math.random() * maxTop
-            });
-          }
-        });
-        canvas.renderAll();
-        console.log('Canvas data loaded and displaced automatically');
+        console.log('Canvas data loaded automatically');
       });
     }
 
@@ -579,23 +566,13 @@ export const Canvas = () => {
         hasBorders: activeTool === 'select',
       });
     });
-
-    // Set up eraser tool
-    if (activeTool === 'eraser') {
-      const handleEraserClick = (e: any) => {
-        if (!e.target) return;
-        
-        const objectToRemove = e.target;
-        fabricCanvas.remove(objectToRemove);
-        fabricCanvas.renderAll();
-        console.log('Object erased');
-      };
-
-      fabricCanvas.on('mouse:down', handleEraserClick);
-
-      return () => {
-        fabricCanvas.off('mouse:down', handleEraserClick);
-      };
+    
+    if (activeTool === "draw") {
+      if (!fabricCanvas.freeDrawingBrush || !(fabricCanvas.freeDrawingBrush instanceof fabric.PencilBrush)) {
+        fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
+      }
+      fabricCanvas.freeDrawingBrush.color = getThemeColor(activeColor);
+      fabricCanvas.freeDrawingBrush.width = strokeWidth;
     }
     
     fabricCanvas.renderAll();
@@ -642,27 +619,6 @@ export const Canvas = () => {
     applyColorToSelected();
   };
 
-  // Handle object deletion
-  useEffect(() => {
-    if (!fabricCanvas) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete') && fabricCanvas.getActiveObject()) {
-        const activeObjects = fabricCanvas.getActiveObjects();
-        fabricCanvas.remove(...activeObjects);
-        fabricCanvas.discardActiveObject();
-        fabricCanvas.renderAll();
-        toast("Object deleted");
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [fabricCanvas]);
-
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -686,6 +642,7 @@ export const Canvas = () => {
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
+      
       {/* Floating Toolbar */}
       <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10">
         <Toolbar 
@@ -698,6 +655,7 @@ export const Canvas = () => {
           onShowExport={() => setShowExport(true)}
         />
       </div>
+
       {/* Color Picker & Settings */}
       <div className="absolute top-4 right-4 z-10">
         <ColorPicker 
@@ -707,10 +665,12 @@ export const Canvas = () => {
           onStrokeWidthChange={setStrokeWidth}
         />
       </div>
+
       {/* Theme Toggle */}
       <div className="absolute top-4 left-4 z-10">
         <ThemeToggle />
       </div>
+
       {/* AI Assistant Panel */}
       {showAI && (
         <AIAssistant 
@@ -719,6 +679,7 @@ export const Canvas = () => {
           activeColor={getThemeColor(activeColor)}
         />
       )}
+
       {/* Export Panel */}
       {showExport && (
         <ExportPanel 

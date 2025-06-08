@@ -67,10 +67,10 @@ const ToolButton: React.FC<ToolButtonProps> = ({
     <HoverCardTrigger asChild>
       <Button
         variant={isActive ? "default" : "ghost"}
-        size="icon"
+        size="sm"
         onClick={onClick}
         className={cn(
-          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 p-0",
+          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
           isActive 
             ? `bg-${colorClass}-600 text-white hover:bg-${colorClass}-700 dark:bg-${colorClass}-500 dark:hover:bg-${colorClass}-600 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
             : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
