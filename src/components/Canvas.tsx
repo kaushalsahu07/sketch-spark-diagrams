@@ -544,6 +544,27 @@ export const Canvas = () => {
     };
   }, [fabricCanvas, activeTool, isDrawing, startPoint, activeColor, strokeWidth]);
 
+  // Handle keyboard events for delete/backspace
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && fabricCanvas.getActiveObjects().length > 0) {
+        const activeObjects = fabricCanvas.getActiveObjects();
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.remove(...activeObjects);
+        fabricCanvas.renderAll();
+        toast("Objects deleted");
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [fabricCanvas]);
+
   // Update tool setup
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -557,7 +578,7 @@ export const Canvas = () => {
                                 activeTool === "select" ? 'default' : 'crosshair';
     fabricCanvas.skipTargetFind = activeTool !== "select" && activeTool !== "eraser";
     
-    // Enable object interaction for select tool
+    // Enable object interaction for select and eraser tools
     fabricCanvas.getObjects().forEach(obj => {
       obj.set({
         selectable: activeTool === 'select',
@@ -566,17 +587,29 @@ export const Canvas = () => {
         hasBorders: activeTool === 'select',
       });
     });
-    
-    if (activeTool === "draw") {
-      if (!fabricCanvas.freeDrawingBrush || !(fabricCanvas.freeDrawingBrush instanceof fabric.PencilBrush)) {
-        fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
+
+    // Set up eraser tool
+    const handleEraserClick = (e: any) => {
+      if (activeTool !== 'eraser') return;
+      
+      const pointer = fabricCanvas.getPointer(e.e);
+      const target = fabricCanvas.findTarget(e);
+      
+      if (target) {
+        fabricCanvas.remove(target);
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.renderAll();
+        console.log('Object erased at:', pointer.x, pointer.y);
+        toast("Object erased");
       }
-      fabricCanvas.freeDrawingBrush.color = getThemeColor(activeColor);
-      fabricCanvas.freeDrawingBrush.width = strokeWidth;
-    }
-    
-    fabricCanvas.renderAll();
-  }, [activeTool, fabricCanvas, strokeWidth, activeColor]);
+    };
+
+    fabricCanvas.on('mouse:down', handleEraserClick);
+
+    return () => {
+      fabricCanvas.off('mouse:down', handleEraserClick);
+    };
+  }, [activeTool, fabricCanvas]);
 
   // Handle tool selection
   const handleToolClick = (tool: Tool) => {
