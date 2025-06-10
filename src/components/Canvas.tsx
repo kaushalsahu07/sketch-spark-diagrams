@@ -549,7 +549,7 @@ export const Canvas = () => {
     if (!fabricCanvas) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && fabricCanvas.getActiveObjects().length > 0) {
+      if ((e.key === 'Delete') && fabricCanvas.getActiveObjects().length > 0) {
         const activeObjects = fabricCanvas.getActiveObjects();
         fabricCanvas.discardActiveObject();
         fabricCanvas.remove(...activeObjects);
