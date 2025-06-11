@@ -21,15 +21,32 @@ export const generateMistralResponse = async (
       throw new Error('Gemini API key is not set. Please add VITE_GEMINI_API_KEY to your environment variables.');
     }
 
-    console.log('Generating Graphviz diagram...');
-    const diagramPrompt = `You are SketchSpark AI, a diagram expert. Create a diagram for this request. 
+    // New system prompt for fabric.js JSON
+    const diagramPrompt = `You are SketchSpark AI, a diagram expert. 
+Create a diagram for this request as a JSON code block compatible with fabric.js. 
+Only use these types: rect, circle, text, line, path. 
+Each object must have reasonable left, top, width, height, and color values. 
+Group related objects close together. 
+Do not use unsupported types. 
+Return ONLY the JSON code block.
 
 Context: ${canvasDescription}
 Request: ${prompt}
 
-Create a clear and organized diagram showing the relationships and flow.`;
+Example:
+\`\`\`json
+{
+  "objects": [
+    { "type": "rect", "left": 100, "top": 100, "width": 120, "height": 60, "fill": "white", "stroke": "black" },
+    { "type": "text", "text": "User", "left": 160, "top": 130, "fontSize": 20, "fill": "black" }
+  ]
+}
+\`\`\`
 
-    const result = await generateGraphvizDiagram(diagramPrompt);
+Return ONLY the JSON code block.`;
+
+    // Use your existing model call, but with the new prompt
+    const result = await generateGraphvizDiagram(diagramPrompt); // This should be renamed, but for now, just use it to send the prompt
     return result;
   } catch (error) {
     console.error('Error generating diagram:', error);
@@ -37,30 +54,6 @@ Create a clear and organized diagram showing the relationships and flow.`;
       throw error;
     }
     throw new Error('Failed to generate diagram. Please try again.');
-  }
-};
-
-export const convertDotToSVG = async (dotCode: string): Promise<string> => {
-  try {
-    // Clean up the DOT code and remove the code block markers if present
-    const cleanDotCode = dotCode
-      .replace(/```dot\n/, '')
-      .replace(/```$/, '')
-      .trim();
-
-    // Get initialized Viz.js instance
-    const viz = await getViz();
-
-    // Use Viz.js to render the DOT code to SVG
-    const svg = await viz.renderString(cleanDotCode, {
-      engine: 'dot',
-      format: 'svg'
-    });
-
-    return svg;
-  } catch (error) {
-    console.error('Error converting DOT to SVG:', error);
-    throw new Error('Failed to render diagram. Please check the Graphviz syntax.');
   }
 };
 

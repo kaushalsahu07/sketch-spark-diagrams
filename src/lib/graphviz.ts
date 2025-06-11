@@ -22,39 +22,7 @@ export const generateGraphvizDiagram = async (prompt: string): Promise<string> =
       model: 'gemma-3-27b-it',
     });
 
-    // Enhanced system prompt for Graphviz DOT diagram generation
-    const systemPrompt = `You are a Graphviz (DOT) diagram expert. Create clear and valid DOT diagrams following these rules:
-
-1. Always use directed graphs (digraph)
-2. Use descriptive node labels in quotes
-3. Use proper DOT arrow syntax: ->
-4. Add styling when relevant
-5. Keep the diagram focused and readable
-
-Example of a valid DOT diagram:
-\`\`\`dot
-digraph G {
-  // Set default styles
-  node [shape=box, style=rounded];
-  edge [color=navy];
-  
-  // Define nodes with labels
-  start [label="Start"];
-  process [label="Process Data"];
-  decision [label="Make Decision", shape=diamond];
-  success [label="Success", color=green];
-  failure [label="Failure", color=red];
-  
-  // Define relationships
-  start -> process;
-  process -> decision;
-  decision -> success [label="Yes"];
-  decision -> failure [label="No"];
-}
-\`\`\`
-
-Note: Focus on clarity and readability. Use appropriate node shapes and edge styles.`;
-
+    // Use the prompt as-is (it may be for DOT or JSON)
     const chat = model.startChat({
       generationConfig: {
         temperature: 0.2,
@@ -64,21 +32,8 @@ Note: Focus on clarity and readability. Use appropriate node shapes and edge sty
       },
     });
 
-    // Send the context first
-    await chat.sendMessage(systemPrompt);
-    
-    // Generate the diagram based on the prompt
-    const diagramPrompt = `Create a clear Graphviz DOT diagram for this request: ${prompt}
-
-Requirements:
-- Use digraph for directed relationships
-- Add descriptive labels in quotes
-- Use appropriate node shapes
-- Add colors for better understanding
-- Keep it under 15 nodes for clarity
-- Return only the DOT code block`;
-
-    const result = await chat.sendMessage(diagramPrompt);
+    // Send the prompt directly
+    const result = await chat.sendMessage(prompt);
     const response = await result.response;
     const text = response.text();
     
@@ -86,22 +41,8 @@ Requirements:
       throw new Error('No response generated from Gemini');
     }
 
-    // Extract the DOT code block
-    const dotMatch = text.match(/```dot\n([\s\S]*?)```/);
-    if (!dotMatch) {
-      console.error('Raw response:', text);
-      throw new Error('No valid DOT diagram found in response');
-    }
-
-    const dotCode = dotMatch[1].trim();
-    
-    // Validate the generated DOT code
-    if (!validateDotSyntax(dotCode)) {
-      throw new Error('Generated DOT code appears to be invalid');
-    }
-
-    // Return the full code block
-    return `\`\`\`dot\n${dotCode}\n\`\`\``;
+    // Return the raw text (could be JSON or DOT)
+    return text;
 
   } catch (error) {
     console.error('Error generating with Graphviz:', error);

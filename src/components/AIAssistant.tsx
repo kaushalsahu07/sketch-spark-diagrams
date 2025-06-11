@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { X, Send, Sparkles, MessageSquare, Wand2 } from "lucide-react";
+import * as fabric from "fabric";
 import { Canvas as FabricCanvas } from "fabric";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { generateMistralResponse, convertDotToSVG } from "@/lib/mistral";
+import { generateMistralResponse } from "@/lib/mistral";
 import { generateChatResponse } from "@/lib/cohere";
 
 interface AIAssistantProps {
@@ -73,28 +74,93 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
     }
   };
 
-  const addSVGToCanvas = async (svgString: string) => {
+  const addToCanvas = async (jsonData: any) => {
     if (!canvas) return;
   
     try {
-      fabric.loadSVGFromString(svgString, (objects, options) => {
+      // Clear existing objects if needed
+      canvas.clear();
+      
+      if (!Array.isArray(jsonData.objects)) {
+        toast.error('Invalid diagram JSON: objects should be an array');
+        return;
+      }
+
+      const objects = jsonData.objects.map((obj: any) => {
+        // Create the appropriate fabric object based on type
+        let fabricObj;
+        switch (obj.type) {
+          case 'rect': {
+            const { type, ...rest } = obj;
+            fabricObj = new fabric.Rect(rest);
+            break;
+          }
+          case 'circle': {
+            const { type, ...rest } = obj;
+            fabricObj = new fabric.Circle(rest);
+            break;
+          }
+          case 'text': {
+            const { type, ...rest } = obj;
+            fabricObj = new fabric.IText(obj.text, { ...rest, selectable: true, evented: true });
+            break;
+          }
+          case 'line': {
+            const { type, x1, y1, x2, y2, ...rest } = obj;
+            fabricObj = new fabric.Line([x1, y1, x2, y2], rest);
+            break;
+          }
+          case 'path': {
+            const { type, path, ...rest } = obj;
+            fabricObj = new fabric.Path(path, rest);
+            break;
+          }
+          default:
+            console.warn(`Unsupported object type: ${obj.type}`);
+            return null;
+        }
+        
+        if (fabricObj) {
+          // Apply common properties
+          if (obj.fill) fabricObj.set('fill', obj.fill);
+          if (obj.stroke) fabricObj.set('stroke', obj.stroke);
+          if (obj.strokeWidth) fabricObj.set('strokeWidth', obj.strokeWidth);
+          if (obj.opacity !== undefined) fabricObj.set('opacity', obj.opacity);
+        }
+        
+        return fabricObj;
+      }).filter((obj): obj is fabric.Object => Boolean(obj)); // Type guard to remove nulls
+      
+      // Add objects to canvas
+      objects.forEach((obj: any) => {
+        if (obj) {
+          canvas.add(obj);
+        }
+      });
+      
+      // Create a group if there are multiple objects
+      if (objects.length > 1) {
         const group = new fabric.Group(objects, {
           left: canvas.width! / 2,
           top: canvas.height! / 2,
-          scaleX: 0.5,
-          scaleY: 0.5,
+          originX: 'center',
+          originY: 'center'
         });
         
         canvas.add(group);
         canvas.centerObject(group);
-        canvas.renderAll();
-        
-        // Save to localStorage
-        const jsonData = canvas.toJSON();
-        localStorage.setItem('canvasData', JSON.stringify(jsonData));
-      });
+      }
+      
+      // Render the canvas
+      canvas.renderAll();
+      
+      // Save to localStorage
+      const canvasJson = canvas.toJSON();
+      localStorage.setItem('canvasData', JSON.stringify(canvasJson));
+      
+      console.log('Successfully added objects to canvas:', objects);
     } catch (error) {
-      console.error('Error adding SVG to canvas:', error);
+      console.error('Error adding objects to canvas:', error);
       toast.error('Failed to add diagram to canvas');
     }
   };
@@ -118,45 +184,39 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
       const response = await generateMistralResponse(prompt, canvasDescription);
       console.log("Mistral response:", response);
   
-      // Extract DOT code if present
-      const dotCode = response.match(/```dot\n([\s\S]*?)```/);
-      console.log("Extracted DOT code:", dotCode);
+      // Extract JSON code if present
+      const jsonMatch = response.match(/```json\n([\s\S]*?)```/);
+      console.log("Extracted JSON code:", jsonMatch);
   
-      let diagram: string | undefined;
-      if (dotCode) {
+      if (jsonMatch) {
         try {
-          console.log("Converting DOT to SVG");
-          diagram = await convertDotToSVG(dotCode[1]);
-          console.log("SVG generated successfully");
+          console.log("Parsing JSON diagram");
+          const jsonData = JSON.parse(jsonMatch[1]);
+          console.log("JSON parsed successfully:", jsonData);
           
-          // Add SVG to canvas
-          if (diagram) {
-            await addSVGToCanvas(diagram);
-            toast.success('Diagram added to canvas!');
-          }
+          // Add JSON objects to canvas
+          await addToCanvas(jsonData);
+          toast.success('Diagram added to canvas!');
         } catch (error) {
-          console.error('Error converting diagram:', error);
+          console.error('Error parsing diagram:', error);
           toast.error("Failed to render diagram, but providing text response.");
         }
       }
   
       // Clean response text
-      const cleanResponse = dotCode 
-        ? response.replace(/\`\`\`dot[\s\S]*?\`\`\`/, '').trim()
+      const cleanResponse = jsonMatch 
+        ? response.replace(/\`\`\`json[\s\S]*?\`\`\`/, '').trim()
         : response;
   
       const aiMessage: Message = {
         role: 'assistant',
         content: cleanResponse,
-        timestamp: new Date(),
-        diagram
+        timestamp: new Date()
       };
       setMessages(prev => [...prev, aiMessage]);
       
-      if (!dotCode) {
+      if (!jsonMatch) {
         toast.warning("No diagram generated. Try being more specific about the diagram you want.");
-      } else if (diagram) {
-        toast.success("Diagram generated successfully!");
       }
     } catch (error: any) {
       console.error("Generate error:", error);
@@ -181,8 +241,6 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
       handleGenerate();
     }
   };
-
-
 
   return (
     <Card className="fixed right-4 bottom-4 w-96 p-6 shadow-2xl border border-primary/20 dark:border-primary/10 
