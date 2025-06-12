@@ -138,19 +138,6 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
         }
       });
       
-      // Create a group if there are multiple objects
-      if (objects.length > 1) {
-        const group = new fabric.Group(objects, {
-          left: canvas.width! / 2,
-          top: canvas.height! / 2,
-          originX: 'center',
-          originY: 'center'
-        });
-        
-        canvas.add(group);
-        canvas.centerObject(group);
-      }
-      
       // Render the canvas
       canvas.renderAll();
       
@@ -197,25 +184,37 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
           // Add JSON objects to canvas
           await addToCanvas(jsonData);
           toast.success('Diagram added to canvas!');
+          // Always add the cleaned text response to the chat
+          const cleanResponse = response.replace(/```json[\s\S]*?```/, '').trim();
+          if (cleanResponse) {
+            const aiMessage: Message = {
+              role: 'assistant',
+              content: cleanResponse,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, aiMessage]);
+          }
         } catch (error) {
           console.error('Error parsing diagram:', error);
           toast.error("Failed to render diagram, but providing text response.");
+          // If parsing fails, add the text response to the chat
+          const cleanResponse = response.replace(/```json[\s\S]*?```/, '').trim();
+          const aiMessage: Message = {
+            role: 'assistant',
+            content: cleanResponse,
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, aiMessage]);
         }
-      }
-  
-      // Clean response text
-      const cleanResponse = jsonMatch 
-        ? response.replace(/\`\`\`json[\s\S]*?\`\`\`/, '').trim()
-        : response;
-  
-      const aiMessage: Message = {
-        role: 'assistant',
-        content: cleanResponse,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      
-      if (!jsonMatch) {
+      } else {
+        // If no diagram is generated, add the text response to the chat
+        const cleanResponse = response.trim();
+        const aiMessage: Message = {
+          role: 'assistant',
+          content: cleanResponse,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, aiMessage]);
         toast.warning("No diagram generated. Try being more specific about the diagram you want.");
       }
     } catch (error: any) {
