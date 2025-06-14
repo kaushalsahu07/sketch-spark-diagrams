@@ -283,8 +283,9 @@ export const Canvas = () => {
       <Sheet open={showAI} onOpenChange={setShowAI}>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <AIAssistant 
+            canvas={null}
             onClose={() => setShowAI(false)}
-            canvasRef={canvasRef}
+            activeColor={color}
           />
         </SheetContent>
       </Sheet>
@@ -293,8 +294,8 @@ export const Canvas = () => {
       <Sheet open={showExport} onOpenChange={setShowExport}>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <ExportPanel 
+            canvas={null}
             onClose={() => setShowExport(false)}
-            canvasRef={canvasRef}
           />
         </SheetContent>
       </Sheet>
