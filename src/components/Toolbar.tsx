@@ -35,6 +35,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+import { SettingsMenu } from "./SettingsMenu";
 
 const ICON_SHORTCUTS: Record<string, string> = {
   select: '1',
@@ -59,6 +60,10 @@ interface ToolbarProps {
   onZoom: (direction: 'in' | 'out') => void;
   onShowAI: () => void;
   onShowExport: () => void;
+  color: string;
+  onColorChange: (color: string) => void;
+  strokeWidth: number;
+  onStrokeWidthChange: (width: number) => void;
 }
 
 interface ToolButtonProps {
@@ -103,7 +108,11 @@ export const Toolbar = ({
   onUndo, 
   onZoom,
   onShowAI,
-  onShowExport
+  onShowExport,
+  color,
+  onColorChange,
+  strokeWidth,
+  onStrokeWidthChange
 }: ToolbarProps) => {
   console.log("Toolbar activeTool:", activeTool);
   const basicTools = [
@@ -343,6 +352,16 @@ export const Toolbar = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Settings Menu - replaces individual theme toggle and color picker */}
+        <Separator orientation="vertical" className="h-6 sm:h-8 bg-gray-200/50 dark:bg-gray-600/50" />
+        
+        <SettingsMenu
+          color={color}
+          onChange={onColorChange}
+          strokeWidth={strokeWidth}
+          onStrokeWidthChange={onStrokeWidthChange}
+        />
       </div>
     </div>
   );
