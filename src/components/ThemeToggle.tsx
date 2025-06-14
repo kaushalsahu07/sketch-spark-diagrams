@@ -8,21 +8,21 @@ export const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="fixed top-16 left-2 z-40 sm:top-4 sm:left-4">
-      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg sm:rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-1.5 sm:p-2">
+    <div className="fixed top-4 left-2 z-40 sm:top-6 sm:left-4">
+      <div className="bg-gradient-to-b from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg shadow-black/5 dark:shadow-white/5 border border-gray-200/20 dark:border-gray-700/20 p-2 sm:p-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleTheme}
           className={cn(
-            "h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-md sm:rounded-lg transition-all duration-200",
-            "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            "h-8 w-8 sm:h-10 sm:w-10 p-0 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
+            "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
           )}
         >
           {theme === 'light' ? (
-            <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+            <Moon className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-200 group-hover:scale-110" />
           ) : (
-            <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+            <Sun className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-200 group-hover:scale-110" />
           )}
         </Button>
       </div>
