@@ -20,8 +20,7 @@ import {
   Pentagon,
   Hexagon,
   Shapes,
-  ChevronDown,
-  Info
+  ChevronDown
 } from "lucide-react";
 import { Tool } from "./Canvas";
 import {
@@ -35,6 +34,21 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+
+const ICON_SHORTCUTS: Record<string, string> = {
+  select: '1',
+  rectangle: 'r',
+  diamond: 'd',
+  circle: 'c',
+  line: 'l',
+  triangle: '3',
+  pencil: '2',
+  text: 't',    
+  eraser: '0',
+  star: 's',
+  pentagon: 'p',
+  hexagon: 'h',
+};
 
 interface ToolbarProps {
   activeTool: Tool;
@@ -55,13 +69,12 @@ interface ToolButtonProps {
   tooltip?: string;
 }
 
-const ToolButton: React.FC<ToolButtonProps> = ({ 
+const ToolButton: React.FC<ToolButtonProps & { shortcut?: string }> = ({ 
   isActive, 
   onClick, 
-  icon: Icon, 
-  label, 
+  icon: Icon,  
   colorClass = "blue", 
-  tooltip 
+  shortcut
 }) => (
   <HoverCard openDelay={300}>
     <HoverCardTrigger asChild>
@@ -70,16 +83,20 @@ const ToolButton: React.FC<ToolButtonProps> = ({
         size="sm"
         onClick={onClick}
         className={cn(
-          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
+          "relative h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300 transform hover:scale-105 active:scale-95 p-0",
           isActive 
             ? `bg-${colorClass}-600 text-white hover:bg-${colorClass}-700 dark:bg-${colorClass}-500 dark:hover:bg-${colorClass}-600 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
             : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
         )}
       >
-        <Icon className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
+        <Icon className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+        {shortcut && (
+          <span className="absolute top-1 right-1 px-1 py-0 rounded-full text-[8px] font-semibold bg-gray-200/90 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300 shadow-sm border border-gray-300/60 dark:border-gray-600/60 select-none pointer-events-none" style={{lineHeight: '1.1'}}>
+            {shortcut}
+          </span>
+        )}
       </Button>
     </HoverCardTrigger>
-    {/* Removed HoverCardContent */}
   </HoverCard>
 );
 
@@ -92,6 +109,7 @@ export const Toolbar = ({
   onShowAI,
   onShowExport
 }: ToolbarProps) => {
+  console.log("Toolbar activeTool:", activeTool);
   const basicTools = [
     { 
       id: "select" as Tool, 
@@ -143,6 +161,7 @@ export const Toolbar = ({
               icon={tool.icon}
               label={tool.label}
               tooltip={tool.tooltip}
+              shortcut={ICON_SHORTCUTS[tool.id]}
             />
           ))}
         </div>
@@ -185,13 +204,17 @@ export const Toolbar = ({
                     )}
                   >
                     <shape.icon className="h-5 w-5" />
-                    <span className="text-sm font-medium">{shape.label}</span>
+                    <span className="text-sm font-medium flex-1">{shape.label}</span>
+                    {ICON_SHORTCUTS[shape.id] && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-200/90 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300 border border-gray-300/60 dark:border-gray-600/60 select-none pointer-events-none" style={{lineHeight: '1.1'}}>
+                        {ICON_SHORTCUTS[shape.id]}
+                      </span>
+                    )}
                   </DropdownMenuItem>
                 ))}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* Removed HoverCardContent */}
         </HoverCard>
 
         <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />

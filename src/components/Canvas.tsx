@@ -24,6 +24,22 @@ export type Tool =
   | "pentagon"
   | "hexagon";
 
+// Add ICON_SHORTCUTS mapping for keyboard shortcuts
+const ICON_SHORTCUTS: Record<string, string> = {
+  select: '1',
+  rectangle: 'r',
+  diamond: 'd',
+  circle: 'c',
+  line: 'l',
+  triangle: '3',
+  pencil: '2',
+  text: 't',
+  eraser: '0',
+  star: 's',
+  pentagon: 'p',
+  hexagon: 'h'
+};
+
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
@@ -671,6 +687,28 @@ export const Canvas = () => {
     // Ensure canvas is displayed immediately
     fabricCanvas.renderAll();
   }, [fabricCanvas]);
+
+  // Add keyboard shortcut support for tool selection
+  useEffect(() => {
+    const keyToTool = Object.entries(ICON_SHORTCUTS).reduce((acc, [tool, key]) => {
+      acc[key] = tool;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const handleShortcut = (e: KeyboardEvent) => {
+      console.log("Key pressed:", e.key);
+      // Ignore if typing in an input or textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (keyToTool[e.key]) {
+        setActiveTool(keyToTool[e.key] as Tool);
+        toast(`Switched to ${(keyToTool[e.key] as string).charAt(0).toUpperCase() + (keyToTool[e.key] as string).slice(1)} tool`);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [ICON_SHORTCUTS, setActiveTool]);
 
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
