@@ -676,8 +676,10 @@ export const Canvas = () => {
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
       
-      {/* Floating Toolbar */}
-      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10">
+      {/* Responsive Floating Toolbar */}
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 
+                      sm:top-2 sm:left-1/2 sm:transform sm:-translate-x-1/2
+                      lg:top-4 lg:left-1/2 lg:transform lg:-translate-x-1/2">
         <Toolbar 
           activeTool={activeTool} 
           onToolClick={handleToolClick}
@@ -689,8 +691,10 @@ export const Canvas = () => {
         />
       </div>
 
-      {/* Color Picker & Settings */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Responsive Color Picker & Settings */}
+      <div className="absolute top-16 right-2 z-10
+                      sm:top-4 sm:right-4
+                      lg:top-4 lg:right-4">
         <ColorPicker 
           color={activeColor} 
           onChange={handleColorChange}
@@ -699,26 +703,32 @@ export const Canvas = () => {
         />
       </div>
 
-      {/* Theme Toggle */}
-      <div className="absolute top-4 left-4 z-10">
+      {/* Responsive Theme Toggle */}
+      <div className="absolute top-16 left-2 z-10
+                      sm:top-4 sm:left-4
+                      lg:top-4 lg:left-4">
         <ThemeToggle />
       </div>
 
-      {/* AI Assistant Panel */}
+      {/* AI Assistant Panel - Responsive */}
       {showAI && (
-        <AIAssistant 
-          canvas={fabricCanvas}
-          onClose={() => setShowAI(false)}
-          activeColor={getThemeColor(activeColor)}
-        />
+        <div className="fixed inset-0 z-50 lg:relative lg:inset-auto">
+          <AIAssistant 
+            canvas={fabricCanvas}
+            onClose={() => setShowAI(false)}
+            activeColor={getThemeColor(activeColor)}
+          />
+        </div>
       )}
 
-      {/* Export Panel */}
+      {/* Export Panel - Responsive */}
       {showExport && (
-        <ExportPanel 
-          canvas={fabricCanvas}
-          onClose={() => setShowExport(false)}
-        />
+        <div className="fixed inset-0 z-50 lg:relative lg:inset-auto">
+          <ExportPanel 
+            canvas={fabricCanvas}
+            onClose={() => setShowExport(false)}
+          />
+        </div>
       )}
     </div>
   );

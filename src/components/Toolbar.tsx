@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
@@ -70,16 +71,15 @@ const ToolButton: React.FC<ToolButtonProps> = ({
         size="sm"
         onClick={onClick}
         className={cn(
-          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
+          "h-8 w-8 sm:h-10 sm:w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
           isActive 
             ? `bg-${colorClass}-600 text-white hover:bg-${colorClass}-700 dark:bg-${colorClass}-500 dark:hover:bg-${colorClass}-600 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
             : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
         )}
       >
-        <Icon className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-200 group-hover:scale-110" />
       </Button>
     </HoverCardTrigger>
-    {/* Removed HoverCardContent */}
   </HoverCard>
 );
 
@@ -131,11 +131,56 @@ export const Toolbar = ({
   ];
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 transform z-50">
-      <div className="bg-gradient-to-b from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-black/5 dark:shadow-white/5 border border-gray-200/20 dark:border-gray-700/20 p-3 flex items-center gap-3">
-        {/* Basic Tools */}
-        <div className="flex items-center gap-2">
-          {basicTools.map((tool) => (
+    <div className="fixed top-2 left-1/2 -translate-x-1/2 transform z-50 max-w-[95vw] overflow-x-auto">
+      <div className="bg-gradient-to-b from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg shadow-black/5 dark:shadow-white/5 border border-gray-200/20 dark:border-gray-700/20 p-2 sm:p-3 flex items-center gap-2 sm:gap-3 min-w-max">
+        
+        {/* Basic Tools - Always visible */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {basicTools.slice(0, 2).map((tool) => (
+            <ToolButton
+              key={tool.id}
+              isActive={activeTool === tool.id}
+              onClick={() => onToolClick(tool.id)}
+              icon={tool.icon}
+              label={tool.label}
+              tooltip={tool.tooltip}
+            />
+          ))}
+        </div>
+
+        {/* Mobile: Show text and eraser in dropdown for smaller screens */}
+        <div className="sm:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 rounded-xl"
+              >
+                <Type className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg">
+              {basicTools.slice(2).map((tool) => (
+                <DropdownMenuItem
+                  key={tool.id}
+                  onClick={() => onToolClick(tool.id)}
+                  className={cn(
+                    "flex items-center gap-2",
+                    activeTool === tool.id && "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                  )}
+                >
+                  <tool.icon className="h-4 w-4" />
+                  <span>{tool.label}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Desktop: Show all basic tools */}
+        <div className="hidden sm:flex items-center gap-2">
+          {basicTools.slice(2).map((tool) => (
             <ToolButton
               key={tool.id}
               isActive={activeTool === tool.id}
@@ -156,99 +201,132 @@ export const Toolbar = ({
                   variant={shapes.some(s => s.id === activeTool) ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "h-10 rounded-xl px-4 flex items-center gap-2 transition-all duration-300 transform hover:scale-105 active:scale-95",
+                    "h-8 sm:h-10 rounded-xl px-2 sm:px-4 flex items-center gap-1 sm:gap-2 transition-all duration-300 transform hover:scale-105 active:scale-95",
                     shapes.some(s => s.id === activeTool)
                       ? "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 shadow-lg shadow-blue-500/20 dark:shadow-blue-500/10" 
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
                   )}
                 >
-                  <Shapes className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-sm font-medium">Shapes</span>
-                  <ChevronDown className="h-4 w-4 opacity-70" />
+                  <Shapes className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-200 group-hover:scale-110" />
+                  <span className="hidden sm:block text-sm font-medium">Shapes</span>
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-70" />
                 </Button>
               </HoverCardTrigger>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="start" 
-              className="p-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-gray-200/20 dark:border-gray-700/20 rounded-xl shadow-xl"
+              className="p-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-gray-200/20 dark:border-gray-700/20 rounded-xl shadow-xl z-50"
             >
-              <div className="grid grid-cols-2 gap-2 min-w-[240px]">
+              <div className="grid grid-cols-2 gap-2 min-w-[200px] sm:min-w-[240px]">
                 {shapes.map((shape) => (
                   <DropdownMenuItem
                     key={shape.id}
                     onClick={() => onToolClick(shape.id)}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
+                      "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-lg transition-all duration-200",
                       activeTool === shape.id 
                         ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" 
                         : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
                     )}
                   >
-                    <shape.icon className="h-5 w-5" />
-                    <span className="text-sm font-medium">{shape.label}</span>
+                    <shape.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-xs sm:text-sm font-medium">{shape.label}</span>
                   </DropdownMenuItem>
                 ))}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* Removed HoverCardContent */}
         </HoverCard>
 
-        <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
+        <Separator orientation="vertical" className="h-6 sm:h-8 bg-gray-200/50 dark:bg-gray-600/50" />
 
         {/* Action Tools */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <ToolButton
             onClick={onUndo}
             icon={Undo}
             label="Undo"
-            tooltip="Undo your last action (Ctrl/Cmd + Z)"
+            tooltip="Undo your last action"
           />
           <ToolButton
             onClick={onClear}
             icon={Trash2}
-            label="Clear Canvas"
+            label="Clear"
             colorClass="red"
-            tooltip="Clear the entire canvas (This action cannot be undone)"
+            tooltip="Clear the entire canvas"
           />
         </div>
 
-        <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
+        {/* Desktop: Zoom and Feature Controls */}
+        <div className="hidden md:flex items-center gap-2">
+          <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
+          
+          <div className="flex items-center gap-2">
+            <ToolButton
+              onClick={() => onZoom('in')}
+              icon={ZoomIn}
+              label="Zoom In"
+              tooltip="Zoom in to see more details"
+            />
+            <ToolButton
+              onClick={() => onZoom('out')}
+              icon={ZoomOut}
+              label="Zoom Out"
+              tooltip="Zoom out to see more of the canvas"
+            />
+          </div>
 
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
-          <ToolButton
-            onClick={() => onZoom('in')}
-            icon={ZoomIn}
-            label="Zoom In"
-            tooltip="Zoom in to see more details (Ctrl/Cmd + +)"
-          />
-          <ToolButton
-            onClick={() => onZoom('out')}
-            icon={ZoomOut}
-            label="Zoom Out"
-            tooltip="Zoom out to see more of the canvas (Ctrl/Cmd + -)"
-          />
+          <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
+
+          <div className="flex items-center gap-2">
+            <ToolButton
+              onClick={onShowAI}
+              icon={Sparkles}
+              label="AI Assistant"
+              colorClass="purple"
+              tooltip="Get help from our AI Assistant"
+            />
+            <ToolButton
+              onClick={onShowExport}
+              icon={Download}
+              label="Export"
+              colorClass="green"
+              tooltip="Export your diagram"
+            />
+          </div>
         </div>
 
-        <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
-
-        {/* Feature Tools */}
-        <div className="flex items-center gap-2">
-          <ToolButton
-            onClick={onShowAI}
-            icon={Sparkles}
-            label="AI Assistant"
-            colorClass="purple"
-            tooltip="Get help from our AI Assistant to improve your diagrams"
-          />
-          <ToolButton
-            onClick={onShowExport}
-            icon={Download}
-            label="Export"
-            colorClass="green"
-            tooltip="Export your diagram as an image or editable JSON file"
-          />
+        {/* Mobile: Feature Controls in dropdown */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 rounded-xl"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg">
+              <DropdownMenuItem onClick={() => onZoom('in')} className="flex items-center gap-2">
+                <ZoomIn className="h-4 w-4" />
+                <span>Zoom In</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onZoom('out')} className="flex items-center gap-2">
+                <ZoomOut className="h-4 w-4" />
+                <span>Zoom Out</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onShowAI} className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span>AI Assistant</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onShowExport} className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
