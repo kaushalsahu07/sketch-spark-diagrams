@@ -714,10 +714,8 @@ export const Canvas = () => {
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
       
-      {/* Responsive Floating Toolbar */}
-      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 
-                      sm:top-2 sm:left-1/2 sm:transform sm:-translate-x-1/2
-                      lg:top-4 lg:left-1/2 lg:transform lg:-translate-x-1/2">
+      {/* Mobile-First Responsive Toolbar */}
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-40 w-[95vw] max-w-none sm:w-auto sm:max-w-4xl">
         <Toolbar 
           activeTool={activeTool} 
           onToolClick={handleToolClick}
@@ -729,28 +727,20 @@ export const Canvas = () => {
         />
       </div>
 
-      {/* Responsive Color Picker & Settings */}
-      <div className="absolute top-16 right-2 z-10
-                      sm:top-4 sm:right-4
-                      lg:top-4 lg:right-4">
-        <ColorPicker 
-          color={activeColor} 
-          onChange={handleColorChange}
-          strokeWidth={strokeWidth}
-          onStrokeWidthChange={setStrokeWidth}
-        />
-      </div>
+      {/* Theme Toggle - Responsive positioning */}
+      <ThemeToggle />
 
-      {/* Responsive Theme Toggle */}
-      <div className="absolute top-16 left-2 z-10
-                      sm:top-4 sm:left-4
-                      lg:top-4 lg:left-4">
-        <ThemeToggle />
-      </div>
+      {/* Color Picker - Responsive positioning */}
+      <ColorPicker 
+        color={activeColor} 
+        onChange={handleColorChange}
+        strokeWidth={strokeWidth}
+        onStrokeWidthChange={setStrokeWidth}
+      />
 
-      {/* AI Assistant Panel - Responsive */}
+      {/* AI Assistant Panel - Full screen on mobile */}
       {showAI && (
-        <div className="fixed inset-0 z-50 lg:relative lg:inset-auto">
+        <div className="fixed inset-0 z-50">
           <AIAssistant 
             canvas={fabricCanvas}
             onClose={() => setShowAI(false)}
@@ -759,9 +749,9 @@ export const Canvas = () => {
         </div>
       )}
 
-      {/* Export Panel - Responsive */}
+      {/* Export Panel - Full screen on mobile */}
       {showExport && (
-        <div className="fixed inset-0 z-50 lg:relative lg:inset-auto">
+        <div className="fixed inset-0 z-50">
           <ExportPanel 
             canvas={fabricCanvas}
             onClose={() => setShowExport(false)}
