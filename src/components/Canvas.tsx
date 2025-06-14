@@ -726,6 +726,10 @@ export const Canvas = () => {
           onZoom={handleZoom}
           onShowAI={() => setShowAI(true)}
           onShowExport={() => setShowExport(true)}
+          color={activeColor}
+          onColorChange={handleColorChange}
+          strokeWidth={strokeWidth}
+          onStrokeWidthChange={setStrokeWidth}
         />
       </div>
 
