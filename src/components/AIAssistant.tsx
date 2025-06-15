@@ -1,4 +1,5 @@
-import { useState, useEffect, FormEvent } from "react";
+
+import { useState, useRef, FormEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -14,14 +15,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Drawer,
   DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
 } from "@/components/ui/drawer";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 
 interface AIAssistantProps {
@@ -38,67 +35,74 @@ interface Message {
 }
 
 export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) => {
-  const [prompt, setPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  // Separate states for CHAT and GENERATE modes
   const [mode, setMode] = useState<'generate' | 'chat'>('generate');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const isMobile = useIsMobile();
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [chatPrompt, setChatPrompt] = useState("");
+  const [generateMessages, setGenerateMessages] = useState<Message[]>([]);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Autofocus textarea after message sent
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!isGenerating && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isGenerating, mode]);
 
   const getCanvasDescription = () => {
     if (!canvas) return "Empty canvas";
-    
     const objects = canvas.getObjects();
     const objectTypes = objects.map(obj => obj.type);
     const objectCounts = objectTypes.reduce((acc, type) => {
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-
     return `Canvas contains: ${Object.entries(objectCounts)
       .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
       .join(', ')}`;
   };
 
+  // --- CHAT HANDLER ---
   const handleChat = async () => {
-    if (!prompt.trim()) return;
-
+    if (!chatPrompt.trim()) return;
     const userMessage: Message = {
       role: 'user',
-      content: prompt,
+      content: chatPrompt,
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, userMessage]);
+    setChatMessages(prev => [...prev, userMessage]);
     setIsGenerating(true);
 
     try {
       const canvasDescription = getCanvasDescription();
-      const response = await generateChatResponse(prompt, canvasDescription);
+      const response = await generateChatResponse(chatPrompt, canvasDescription);
       const aiMessage: Message = {
         role: 'assistant',
         content: response,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setChatMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to generate response. Please try again.");
     } finally {
       setIsGenerating(false);
-      setPrompt("");
+      setChatPrompt("");
     }
   };
 
+  // --- GENERATE HANDLER ---
   const addToCanvas = async (jsonData: any) => {
     if (!canvas) return;
-  
     try {
       canvas.clear();
-      
       if (!Array.isArray(jsonData.objects)) {
         toast.error('Invalid diagram JSON: objects should be an array');
         return;
       }
-
       const objects = jsonData.objects.map((obj: any) => {
         let fabricObj;
         switch (obj.type) {
@@ -131,28 +135,22 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
             console.warn(`Unsupported object type: ${obj.type}`);
             return null;
         }
-        
         if (fabricObj) {
           if (obj.fill) fabricObj.set('fill', obj.fill);
           if (obj.stroke) fabricObj.set('stroke', obj.stroke);
           if (obj.strokeWidth) fabricObj.set('strokeWidth', obj.strokeWidth);
           if (obj.opacity !== undefined) fabricObj.set('opacity', obj.opacity);
         }
-        
         return fabricObj;
       }).filter((obj): obj is fabric.Object => Boolean(obj));
-      
       objects.forEach((obj: any) => {
         if (obj) {
           canvas.add(obj);
         }
       });
-      
       canvas.renderAll();
-      
       const canvasJson = canvas.toJSON();
       localStorage.setItem('canvasData', JSON.stringify(canvasJson));
-      
       console.log('Successfully added objects to canvas:', objects);
     } catch (error) {
       console.error('Error adding objects to canvas:', error);
@@ -161,32 +159,29 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-
+    if (!generatePrompt.trim()) return;
     const userMessage: Message = {
       role: 'user',
-      content: prompt,
+      content: generatePrompt,
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, userMessage]);
+    setGenerateMessages(prev => [...prev, userMessage]);
     setIsGenerating(true);
 
     try {
-      console.log("Generating diagram for prompt:", prompt);
+      console.log("Generating diagram for prompt:", generatePrompt);
       const canvasDescription = getCanvasDescription();
-      
-      const response = await generateMistralResponse(prompt, canvasDescription);
+      const response = await generateMistralResponse(generatePrompt, canvasDescription);
       console.log("Mistral response:", response);
-  
       const jsonMatch = response.match(/```json\n([\s\S]*?)```/);
       console.log("Extracted JSON code:", jsonMatch);
-  
+
       if (jsonMatch) {
         try {
           console.log("Parsing JSON diagram");
           const jsonData = JSON.parse(jsonMatch[1]);
           console.log("JSON parsed successfully:", jsonData);
-          
+
           await addToCanvas(jsonData);
           toast.success('Diagram added to canvas!');
           const cleanResponse = response.replace(/```json[\s\S]*?```/, '').trim();
@@ -196,7 +191,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
               content: cleanResponse,
               timestamp: new Date()
             };
-            setMessages(prev => [...prev, aiMessage]);
+            setGenerateMessages(prev => [...prev, aiMessage]);
           }
         } catch (error) {
           console.error('Error parsing diagram:', error);
@@ -207,7 +202,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
             content: cleanResponse,
             timestamp: new Date()
           };
-          setMessages(prev => [...prev, aiMessage]);
+          setGenerateMessages(prev => [...prev, aiMessage]);
         }
       } else {
         const cleanResponse = response.trim();
@@ -216,7 +211,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
           content: cleanResponse,
           timestamp: new Date()
         };
-        setMessages(prev => [...prev, aiMessage]);
+        setGenerateMessages(prev => [...prev, aiMessage]);
         toast.warning("No diagram generated. Try being more specific about the diagram you want.");
       }
     } catch (error: any) {
@@ -230,10 +225,11 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
       }
     } finally {
       setIsGenerating(false);
-      setPrompt("");
+      setGeneratePrompt("");
     }
   };
 
+  // Handle form submit, only affect current mode's prompt/messages
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (mode === 'chat') {
@@ -298,11 +294,39 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
         </Button>
       </div>
 
-      {/* Chat Messages */}
-      {mode === 'chat' && messages.length > 0 && (
+      {/* Mode specific: messages and inputs */}
+      {mode === 'chat' && chatMessages.length > 0 && (
         <ScrollArea className="flex-1 mb-3 sm:mb-4 pr-2 sm:pr-4 min-h-0">
           <div className="space-y-3 sm:space-y-4">
-            {messages.map((message, index) => (
+            {chatMessages.map((message, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
+                  message.role === 'user' 
+                    ? "ml-auto bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-foreground"
+                )}
+              >
+                <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
+                {message.diagram && (
+                  <div 
+                    className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
+                    dangerouslySetInnerHTML={{ __html: message.diagram }}
+                  />
+                )}
+                <span className="text-[9px] sm:text-[10px] opacity-70 mt-1">
+                  {message.timestamp.toLocaleTimeString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+      {mode === 'generate' && generateMessages.length > 0 && (
+        <ScrollArea className="flex-1 mb-3 sm:mb-4 pr-2 sm:pr-4 min-h-0">
+          <div className="space-y-3 sm:space-y-4">
+            {generateMessages.map((message, index) => (
               <div
                 key={index}
                 className={cn(
@@ -328,16 +352,17 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
         </ScrollArea>
       )}
       
-      {/* Input form */}
+      {/* Input form per mode */}
       {(mode === 'generate' || mode === 'chat') && (
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 flex-shrink-0">
           <div className="relative group">
             <Textarea
+              ref={textareaRef}
               placeholder={mode === 'generate' 
                 ? "Describe the diagram you want to create..."
                 : "Ask me anything! I can help with your canvas..."}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              value={mode === 'generate' ? generatePrompt : chatPrompt}
+              onChange={(e) => mode === 'generate' ? setGeneratePrompt(e.target.value) : setChatPrompt(e.target.value)}
               className={cn(
                 "px-3 sm:px-4 py-2 sm:py-3 bg-background/50 dark:bg-gray-800/50 border-primary/20 dark:border-primary/10",
                 "rounded-xl resize-none transition-all duration-200",
@@ -353,7 +378,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
           
           <Button 
             type="submit"
-            disabled={isGenerating || !prompt.trim()} 
+            disabled={isGenerating || !(mode === 'generate' ? generatePrompt.trim() : chatPrompt.trim())} 
             className={`w-full h-9 sm:h-11 transition-all duration-300 transform rounded-xl text-xs sm:text-sm
               ${isGenerating 
                 ? 'bg-primary/80 cursor-wait' 
@@ -393,6 +418,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
   );
 
   // Mobile view using Drawer
+  const isMobile = useIsMobile();
   if (isMobile) {
     return (
       <Drawer open={true} onOpenChange={onClose}>
@@ -409,7 +435,6 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
 
   // Desktop/Tablet view using Dialog for tablets and Card for desktop
   const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
-
   if (isTablet) {
     return (
       <Dialog open={true} onOpenChange={onClose}>
@@ -435,3 +460,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
     </Card>
   );
 };
+
+// src/components/AIAssistant.tsx is getting very long.
+// Please consider asking to refactor this file into smaller, focused components after you review these changes.
+
