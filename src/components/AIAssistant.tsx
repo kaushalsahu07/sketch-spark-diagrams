@@ -33,6 +33,212 @@ interface Message {
   diagram?: string;
 }
 
+interface AIContentProps {
+  onClose: () => void;
+  mode: 'generate' | 'chat';
+  setMode: (mode: 'generate' | 'chat') => void;
+  generateMessages: Message[];
+  chatMessages: Message[];
+  handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  generatePrompt: string;
+  setGeneratePrompt: (prompt: string) => void;
+  chatPrompt: string;
+  setChatPrompt: (prompt: string) => void;
+  isGenerating: boolean;
+}
+
+const AIContent = ({
+  onClose,
+  mode,
+  setMode,
+  generateMessages,
+  chatMessages,
+  handleSubmit,
+  textareaRef,
+  generatePrompt,
+  setGeneratePrompt,
+  chatPrompt,
+  setChatPrompt,
+  isGenerating,
+}: AIContentProps) => (
+  <div className="relative z-10 h-full flex flex-col">
+    {/* Header */}
+    <div className="flex justify-between items-center mb-4 sm:mb-6 flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="relative">
+          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+        </div>
+        <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-primary via-primary/80 to-primary/60 
+          bg-clip-text text-transparent tracking-tight">
+          AI Assistant
+        </h3>
+      </div>
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={onClose} 
+        className="h-6 w-6 sm:h-7 sm:w-7 rounded-full text-muted-foreground 
+          hover:text-primary hover:bg-primary/10 hover:scale-105
+          transition-all duration-200"
+      >
+        <X className="h-3 w-3 sm:h-4 sm:w-4" />
+      </Button>
+    </div>
+
+    {/* Mode Toggle */}
+    <div className="flex gap-1 sm:gap-2 mb-3 sm:mb-4 p-1 bg-muted/30 rounded-lg flex-shrink-0">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setMode('generate')}
+        className={cn(
+          "flex-1 gap-1 sm:gap-2 rounded-md transition-all text-xs sm:text-sm h-8 sm:h-9",
+          mode === 'generate' && "bg-background shadow-sm"
+        )}
+      >
+        <Wand2 className="h-3 w-3 sm:h-4 sm:w-4" />
+        Generate
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setMode('chat')}
+        className={cn(
+          "flex-1 gap-1 sm:gap-2 rounded-md transition-all text-xs sm:text-sm h-8 sm:h-9",
+          mode === 'chat' && "bg-background shadow-sm"
+        )}
+      >
+        <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" />
+        Chat
+      </Button>
+    </div>
+
+    {/* Mode specific: messages and inputs */}
+    {mode === 'chat' && chatMessages.length > 0 && (
+      <ScrollArea className="flex-1 mb-3 sm:mb-4 pr-2 sm:pr-4 min-h-0">
+        <div className="space-y-3 sm:space-y-4">
+          {chatMessages.map((message, index) => (
+            <div
+              key={index}
+              className={cn(
+                "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
+                message.role === 'user' 
+                  ? "ml-auto bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-foreground"
+              )}
+            >
+              <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
+              {message.diagram && (
+                <div 
+                  className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
+                  dangerouslySetInnerHTML={{ __html: message.diagram }}
+                />
+              )}
+              <span className="text-[9px] sm:text-[10px] opacity-70 mt-1">
+                {message.timestamp.toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    )}
+    {mode === 'generate' && generateMessages.length > 0 && (
+      <ScrollArea className="flex-1 mb-3 sm:mb-4 pr-2 sm:pr-4 min-h-0">
+        <div className="space-y-3 sm:space-y-4">
+          {generateMessages.map((message, index) => (
+            <div
+              key={index}
+              className={cn(
+                "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
+                message.role === 'user' 
+                  ? "ml-auto bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-foreground"
+              )}
+            >
+              <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
+              {message.diagram && (
+                <div 
+                  className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
+                  dangerouslySetInnerHTML={{ __html: message.diagram }}
+                />
+              )}
+              <span className="text-[9px] sm:text-[10px] opacity-70 mt-1">
+                {message.timestamp.toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    )}
+    
+    {/* Input form per mode */}
+    {(mode === 'generate' || mode === 'chat') && (
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 flex-shrink-0">
+        <div className="relative group">
+          <Textarea
+            ref={textareaRef}
+            placeholder={mode === 'generate' 
+              ? "Describe the diagram you want to create..."
+              : "Ask me anything! I can help with your canvas..."}
+            value={mode === 'generate' ? generatePrompt : chatPrompt}
+            onChange={(e) => mode === 'generate' ? setGeneratePrompt(e.target.value) : setChatPrompt(e.target.value)}
+            className={cn(
+              "px-3 sm:px-4 py-2 sm:py-3 bg-background/50 dark:bg-gray-800/50 border-primary/20 dark:border-primary/10",
+              "rounded-xl resize-none transition-all duration-200",
+              "placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20",
+              "focus:border-primary/30 dark:focus:border-primary/20 text-xs sm:text-sm leading-relaxed",
+              "group-hover:bg-background/70 dark:group-hover:bg-gray-800/70",
+              mode === 'chat' ? 'min-h-[60px] sm:min-h-[80px]' : 'min-h-[80px] sm:min-h-[120px]'
+            )}
+          />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 to-transparent 
+            dark:from-primary/10 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+        
+        <Button 
+          type="submit"
+          disabled={isGenerating || !(mode === 'generate' ? generatePrompt.trim() : chatPrompt.trim())} 
+          className={`w-full h-9 sm:h-11 transition-all duration-300 transform rounded-xl text-xs sm:text-sm
+            ${isGenerating 
+              ? 'bg-primary/80 cursor-wait' 
+              : 'bg-gradient-to-r from-primary via-primary/90 to-primary/80 hover:scale-[1.02]'
+            } text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/30
+            disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed`}
+        >
+          {isGenerating ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-3 h-3 sm:w-5 sm:h-5 relative">
+                <div className="absolute inset-0 border-2 border-primary-foreground/30 border-t-primary-foreground 
+                  rounded-full animate-spin" />
+                <div className="absolute inset-1 border border-primary-foreground/20 rounded-full animate-ping" />
+              </div>
+              <span className="animate-pulse">
+                {mode === 'generate' ? 'Generating...' : 'Thinking...'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1 sm:gap-2 group">
+              <Send className="h-3 w-3 sm:h-4 sm:w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              <span>{mode === 'generate' ? 'Generate Diagram' : 'Send Message'}</span>
+            </div>
+          )}
+        </Button>
+      </form>
+    )}
+
+    {isGenerating && (
+      <p className="mt-2 sm:mt-4 text-[10px] sm:text-xs text-center text-muted-foreground/80 animate-pulse">
+        {mode === 'generate' 
+          ? 'Creating your visualization with AI magic ✨'
+          : 'Analyzing your canvas and crafting a response...'}
+      </p>
+    )}
+  </div>
+);
+
+
 export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) => {
   // Separate states for CHAT and GENERATE modes
   const [mode, setMode] = useState<'generate' | 'chat'>('generate');
@@ -242,183 +448,20 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
     }
   };
 
-  // Content component that will be used in both mobile and desktop
-  const AIContent = () => (
-    <div className="relative z-10 h-full flex flex-col">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4 sm:mb-6 flex-shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="relative">
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
-            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
-          </div>
-          <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-primary via-primary/80 to-primary/60 
-            bg-clip-text text-transparent tracking-tight">
-            AI Assistant
-          </h3>
-        </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onClose} 
-          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full text-muted-foreground 
-            hover:text-primary hover:bg-primary/10 hover:scale-105
-            transition-all duration-200"
-        >
-          <X className="h-3 w-3 sm:h-4 sm:w-4" />
-        </Button>
-      </div>
-
-      {/* Mode Toggle */}
-      <div className="flex gap-1 sm:gap-2 mb-3 sm:mb-4 p-1 bg-muted/30 rounded-lg flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setMode('generate')}
-          className={cn(
-            "flex-1 gap-1 sm:gap-2 rounded-md transition-all text-xs sm:text-sm h-8 sm:h-9",
-            mode === 'generate' && "bg-background shadow-sm"
-          )}
-        >
-          <Wand2 className="h-3 w-3 sm:h-4 sm:w-4" />
-          Generate
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setMode('chat')}
-          className={cn(
-            "flex-1 gap-1 sm:gap-2 rounded-md transition-all text-xs sm:text-sm h-8 sm:h-9",
-            mode === 'chat' && "bg-background shadow-sm"
-          )}
-        >
-          <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" />
-          Chat
-        </Button>
-      </div>
-
-      {/* Mode specific: messages and inputs */}
-      {mode === 'chat' && chatMessages.length > 0 && (
-        <ScrollArea className="flex-1 mb-3 sm:mb-4 pr-2 sm:pr-4 min-h-0">
-          <div className="space-y-3 sm:space-y-4">
-            {chatMessages.map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
-                  message.role === 'user' 
-                    ? "ml-auto bg-primary text-primary-foreground"
-                    : "bg-muted/50 text-foreground"
-                )}
-              >
-                <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
-                {message.diagram && (
-                  <div 
-                    className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
-                    dangerouslySetInnerHTML={{ __html: message.diagram }}
-                  />
-                )}
-                <span className="text-[9px] sm:text-[10px] opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-      {mode === 'generate' && generateMessages.length > 0 && (
-        <ScrollArea className="flex-1 mb-3 sm:mb-4 pr-2 sm:pr-4 min-h-0">
-          <div className="space-y-3 sm:space-y-4">
-            {generateMessages.map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
-                  message.role === 'user' 
-                    ? "ml-auto bg-primary text-primary-foreground"
-                    : "bg-muted/50 text-foreground"
-                )}
-              >
-                <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
-                {message.diagram && (
-                  <div 
-                    className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
-                    dangerouslySetInnerHTML={{ __html: message.diagram }}
-                  />
-                )}
-                <span className="text-[9px] sm:text-[10px] opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-      
-      {/* Input form per mode */}
-      {(mode === 'generate' || mode === 'chat') && (
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 flex-shrink-0">
-          <div className="relative group">
-            <Textarea
-              ref={textareaRef}
-              placeholder={mode === 'generate' 
-                ? "Describe the diagram you want to create..."
-                : "Ask me anything! I can help with your canvas..."}
-              value={mode === 'generate' ? generatePrompt : chatPrompt}
-              onChange={(e) => mode === 'generate' ? setGeneratePrompt(e.target.value) : setChatPrompt(e.target.value)}
-              className={cn(
-                "px-3 sm:px-4 py-2 sm:py-3 bg-background/50 dark:bg-gray-800/50 border-primary/20 dark:border-primary/10",
-                "rounded-xl resize-none transition-all duration-200",
-                "placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20",
-                "focus:border-primary/30 dark:focus:border-primary/20 text-xs sm:text-sm leading-relaxed",
-                "group-hover:bg-background/70 dark:group-hover:bg-gray-800/70",
-                mode === 'chat' ? 'min-h-[60px] sm:min-h-[80px]' : 'min-h-[80px] sm:min-h-[120px]'
-              )}
-            />
-            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 to-transparent 
-              dark:from-primary/10 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-          
-          <Button 
-            type="submit"
-            disabled={isGenerating || !(mode === 'generate' ? generatePrompt.trim() : chatPrompt.trim())} 
-            className={`w-full h-9 sm:h-11 transition-all duration-300 transform rounded-xl text-xs sm:text-sm
-              ${isGenerating 
-                ? 'bg-primary/80 cursor-wait' 
-                : 'bg-gradient-to-r from-primary via-primary/90 to-primary/80 hover:scale-[1.02]'
-              } text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/30
-              disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed`}
-          >
-            {isGenerating ? (
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-3 h-3 sm:w-5 sm:h-5 relative">
-                  <div className="absolute inset-0 border-2 border-primary-foreground/30 border-t-primary-foreground 
-                    rounded-full animate-spin" />
-                  <div className="absolute inset-1 border border-primary-foreground/20 rounded-full animate-ping" />
-                </div>
-                <span className="animate-pulse">
-                  {mode === 'generate' ? 'Generating...' : 'Thinking...'}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-1 sm:gap-2 group">
-                <Send className="h-3 w-3 sm:h-4 sm:w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                <span>{mode === 'generate' ? 'Generate Diagram' : 'Send Message'}</span>
-              </div>
-            )}
-          </Button>
-        </form>
-      )}
-
-      {isGenerating && (
-        <p className="mt-2 sm:mt-4 text-[10px] sm:text-xs text-center text-muted-foreground/80 animate-pulse">
-          {mode === 'generate' 
-            ? 'Creating your visualization with AI magic ✨'
-            : 'Analyzing your canvas and crafting a response...'}
-        </p>
-      )}
-    </div>
-  );
+  const contentProps: AIContentProps = {
+    onClose,
+    mode,
+    setMode,
+    generateMessages,
+    chatMessages,
+    handleSubmit,
+    textareaRef,
+    generatePrompt,
+    setGeneratePrompt,
+    chatPrompt,
+    setChatPrompt,
+    isGenerating,
+  };
 
   // Mobile view using Drawer
   const isMobile = useIsMobile();
@@ -429,7 +472,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
           <div className="p-4 h-full overflow-hidden">
             {/* Background gradient effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10" />
-            <AIContent />
+            <AIContent {...contentProps} />
           </div>
         </DrawerContent>
       </Drawer>
@@ -444,7 +487,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
         <DialogContent className="sm:max-w-[500px] md:max-w-[600px] max-h-[80vh] p-4 sm:p-6">
           {/* Background gradient effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 rounded-lg" />
-          <AIContent />
+          <AIContent {...contentProps} />
         </DialogContent>
       </Dialog>
     );
@@ -459,10 +502,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
       rounded-xl overflow-hidden">
       {/* Background gradient effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10" />
-      <AIContent />
+      <AIContent {...contentProps} />
     </Card>
   );
 };
-
-// src/components/AIAssistant.tsx is getting very long.
-// Please consider asking to refactor this file into smaller, focused components after you review these changes.
