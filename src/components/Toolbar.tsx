@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
@@ -93,13 +94,18 @@ const ToolButton: React.FC<ToolButtonProps & { shortcut?: string }> = ({
         size="sm"
         onClick={onClick}
         className={cn(
-          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
+          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 relative",
           isActive 
             ? `bg-${colorClass}-100 text-${colorClass}-700 hover:bg-${colorClass}-200 dark:bg-${colorClass}-600 dark:text-white dark:hover:bg-${colorClass}-700 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50 hover:shadow-md"
         )}
       >
         <Icon className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
+        {shortcut && (
+          <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+            {shortcut}
+          </span>
+        )}
       </Button>
     </HoverCardTrigger>
   </HoverCard>
@@ -180,6 +186,7 @@ export const Toolbar = ({
             label={tool.label}
             tooltip={tool.tooltip}
             colorClass="blue"
+            shortcut={ICON_SHORTCUTS[tool.id]}
           />
         ))}
         {/* Shapes Dropdown */}
@@ -189,12 +196,15 @@ export const Toolbar = ({
               variant={shapes.some(s => s.id === activeTool) ? "default" : "ghost"}
               size="sm"
               className={cn(
-                "h-10 w-10 rounded-xl flex items-center justify-center",
+                "h-10 w-10 rounded-xl flex items-center justify-center relative",
                 "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#4a5361] dark:text-white dark:hover:bg-[#5a6473]",
                 shapes.some(s => s.id === activeTool) && "ring-2 ring-blue-400"
               )}
             >
               <Shapes className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                ▼
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -210,7 +220,7 @@ export const Toolbar = ({
                   key={shape.id}
                   onClick={() => onToolClick(shape.id)}
                   className={cn(
-                    "flex flex-col items-center gap-1 px-2 py-2 rounded-lg cursor-pointer",
+                    "flex flex-col items-center gap-1 px-2 py-2 rounded-lg cursor-pointer relative",
                     "text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]",
                     activeTool === shape.id
                       ? "bg-blue-50 ring-2 ring-blue-400 dark:bg-[#2d3340]"
@@ -219,6 +229,11 @@ export const Toolbar = ({
                 >
                   <shape.icon className="h-5 w-5" />
                   <span className="text-xs">{shape.label}</span>
+                  {ICON_SHORTCUTS[shape.id] && (
+                    <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                      {ICON_SHORTCUTS[shape.id]}
+                    </span>
+                  )}
                 </DropdownMenuItem>
               ))}
             </div>
@@ -233,6 +248,7 @@ export const Toolbar = ({
             label={tool.label}
             tooltip={tool.tooltip}
             colorClass="blue"
+            shortcut={ICON_SHORTCUTS[tool.id]}
           />
         ))}
       </div>
@@ -373,4 +389,3 @@ export const Toolbar = ({
     </div>
   );
 };
-
