@@ -1,4 +1,3 @@
-
 import { useState, useRef, FormEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,14 +42,18 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Autofocus textarea after message sent
+  // Autofocus textarea ONLY after message is sent
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Remove the original useEffect, replace with below:
   useEffect(() => {
+    // Only focus textarea AFTER a message is sent (i.e. when input is cleared)
     if (!isGenerating && textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [isGenerating, mode]);
+    // Remove mode from dependency (since mode changes should not auto-focus)
+    // eslint-disable-next-line
+  }, [isGenerating]);
 
   const getCanvasDescription = () => {
     if (!canvas) return "Empty canvas";
@@ -90,7 +93,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
       toast.error("Failed to generate response. Please try again.");
     } finally {
       setIsGenerating(false);
-      setChatPrompt("");
+      setChatPrompt(""); // Only clear after chat completes
     }
   };
 
@@ -225,7 +228,7 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
       }
     } finally {
       setIsGenerating(false);
-      setGeneratePrompt("");
+      setGeneratePrompt(""); // Only clear after generation completes
     }
   };
 
@@ -463,4 +466,3 @@ export const AIAssistant = ({ canvas, onClose, activeColor }: AIAssistantProps) 
 
 // src/components/AIAssistant.tsx is getting very long.
 // Please consider asking to refactor this file into smaller, focused components after you review these changes.
-
