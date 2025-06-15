@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
@@ -96,8 +95,8 @@ const ToolButton: React.FC<ToolButtonProps & { shortcut?: string }> = ({
         className={cn(
           "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
           isActive 
-            ? `bg-${colorClass}-600 text-white hover:bg-${colorClass}-700 dark:bg-${colorClass}-500 dark:hover:bg-${colorClass}-600 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
-            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
+            ? `bg-${colorClass}-100 text-${colorClass}-700 hover:bg-${colorClass}-200 dark:bg-${colorClass}-600 dark:text-white dark:hover:bg-${colorClass}-700 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
+            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50 hover:shadow-md"
         )}
       >
         <Icon className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
@@ -164,11 +163,10 @@ export const Toolbar = ({
   return (
     <div
       className={cn(
-        // Add tailwind light/dark backgrounds and borders
         "w-full flex flex-row items-center rounded-2xl px-4 py-2 mt-2 shadow-lg",
-        "bg-[#363d47] dark:bg-[#363d47]", // fallback
-        "bg-white/70 dark:bg-[#363d47]", // let light mode be white-ish translucent
-        "border border-[#e5e7eb] dark:border-none"
+        "bg-white/90 dark:bg-[#363d47]",
+        "border border-gray-200 dark:border-none",
+        "backdrop-blur-sm"
       )}
     >
       {/* Toolbar buttons */}
@@ -191,8 +189,8 @@ export const Toolbar = ({
               variant={shapes.some(s => s.id === activeTool) ? "default" : "ghost"}
               size="sm"
               className={cn(
-                "h-10 w-10 rounded-xl flex items-center justify-center text-white hover:bg-[#5a6473]",
-                "bg-[#f3f4f6] text-gray-700 hover:bg-[#e5e7eb] dark:bg-[#4a5361] dark:text-white", // light mode
+                "h-10 w-10 rounded-xl flex items-center justify-center",
+                "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#4a5361] dark:text-white dark:hover:bg-[#5a6473]",
                 shapes.some(s => s.id === activeTool) && "ring-2 ring-blue-400"
               )}
             >
@@ -202,8 +200,8 @@ export const Toolbar = ({
           <DropdownMenuContent
             align="start"
             className={cn(
-              "border-none rounded-xl shadow-xl mt-2 p-2 min-w-[180px]",
-              "bg-white text-gray-800 dark:bg-[#23272f] dark:text-white"
+              "border border-gray-200 rounded-xl shadow-xl mt-2 p-2 min-w-[180px]",
+              "bg-white text-gray-800 dark:bg-[#23272f] dark:text-white dark:border-none"
             )}
           >
             <div className="grid grid-cols-4 gap-2">
@@ -213,9 +211,9 @@ export const Toolbar = ({
                   onClick={() => onToolClick(shape.id)}
                   className={cn(
                     "flex flex-col items-center gap-1 px-2 py-2 rounded-lg cursor-pointer",
-                    "text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]",
+                    "text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]",
                     activeTool === shape.id
-                      ? "bg-blue-100 ring-2 ring-blue-400 dark:bg-[#2d3340]"
+                      ? "bg-blue-50 ring-2 ring-blue-400 dark:bg-[#2d3340]"
                       : ""
                   )}
                 >
@@ -255,7 +253,7 @@ export const Toolbar = ({
               size="sm"
               className={cn(
                 "h-10 w-10 rounded-xl",
-                "bg-[#f3f4f6] text-gray-700 hover:bg-[#e5e7eb] dark:bg-[#23272f] dark:text-white"
+                "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#23272f] dark:text-white dark:hover:bg-[#363d47]"
               )}
             >
               <ChevronDown className="h-5 w-5" />
@@ -264,8 +262,8 @@ export const Toolbar = ({
           <DropdownMenuContent
             align="end"
             className={cn(
-              "border-none rounded-xl shadow-xl mt-2 p-4 min-w-[280px]",
-              "bg-white text-gray-800 dark:bg-[#23272f] dark:text-white"
+              "border border-gray-200 rounded-xl shadow-xl mt-2 p-4 min-w-[280px]",
+              "bg-white text-gray-800 dark:bg-[#23272f] dark:text-white dark:border-none"
             )}
           >
             <div className="space-y-4">
@@ -283,7 +281,7 @@ export const Toolbar = ({
                         "w-8 h-8 rounded-md border-2 transition-all duration-200",
                         activeColor === color 
                           ? "border-blue-500 ring-2 ring-blue-400" 
-                          : "border-[#cbd5e1] hover:border-blue-400 dark:border-[#4a5361]"
+                          : "border-gray-200 hover:border-blue-400 dark:border-[#4a5361]"
                       )}
                       style={{ backgroundColor: color }}
                       onClick={() => onColorChange(color)}
@@ -295,13 +293,13 @@ export const Toolbar = ({
                   value={activeColor}
                   onChange={(e) => onColorChange(e.target.value)}
                   className={cn(
-                    "w-full h-8 rounded-md cursor-pointer border-none",
-                    "bg-[#f3f4f6] dark:bg-[#363d47]"
+                    "w-full h-8 rounded-md cursor-pointer border border-gray-200",
+                    "bg-gray-50 dark:bg-[#363d47] dark:border-none"
                   )}
                 />
               </div>
 
-              <Separator className={cn("bg-[#e5e7eb] dark:bg-[#4a5361]")} />
+              <Separator className="bg-gray-200 dark:bg-[#4a5361]" />
 
               {/* Stroke Width Section */}
               <div className="space-y-2">
@@ -315,23 +313,26 @@ export const Toolbar = ({
                     onChange={(e) => onStrokeWidthChange(parseInt(e.target.value))}
                     className={cn(
                       "flex-1 h-2 rounded-lg appearance-none cursor-pointer",
-                      "bg-[#f3f4f6] dark:bg-[#363d47]"
+                      "bg-gray-100 dark:bg-[#363d47]"
                     )}
                   />
-                  <span className="text-gray-800 dark:text-white text-sm w-8 text-center">{strokeWidth}px</span>
+                  <span className="text-gray-700 dark:text-white text-sm w-8 text-center">{strokeWidth}px</span>
                 </div>
               </div>
 
-              <Separator className={cn("bg-[#e5e7eb] dark:bg-[#4a5361]")} />
+              <Separator className="bg-gray-200 dark:bg-[#4a5361]" />
 
               {/* Theme Toggle Section */}
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-white">Theme</h4>
+                <h4 className="text-sm font-medium text-gray-800 dark:text-white">Theme</h4>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleTheme}
-                  className="w-full justify-start gap-2 text-white hover:bg-[#363d47]"
+                  className={cn(
+                    "w-full justify-start gap-2",
+                    "text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]"
+                  )}
                 >
                   {theme === 'light' ? (
                     <>
@@ -347,7 +348,7 @@ export const Toolbar = ({
                 </Button>
               </div>
 
-              <Separator className="bg-[#4a5361]" />
+              <Separator className="bg-gray-200 dark:bg-[#4a5361]" />
 
               {/* AI Assistant Section */}
               <div className="space-y-2">
@@ -358,7 +359,7 @@ export const Toolbar = ({
                   onClick={onShowAI}
                   className={cn(
                     "w-full justify-start gap-2",
-                    "text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]"
+                    "text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]"
                   )}
                 >
                   <Sparkles className="h-4 w-4" />
