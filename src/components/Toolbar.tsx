@@ -94,16 +94,18 @@ const ToolButton: React.FC<ToolButtonProps & { shortcut?: string }> = ({
         size="sm"
         onClick={onClick}
         className={cn(
-          "h-10 w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 relative",
+          // Responsive sizing: smaller on mobile, normal on larger screens
+          "h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 relative",
           isActive 
             ? `bg-${colorClass}-100 text-${colorClass}-700 hover:bg-${colorClass}-200 dark:bg-${colorClass}-600 dark:text-white dark:hover:bg-${colorClass}-700 shadow-lg shadow-${colorClass}-500/20 dark:shadow-${colorClass}-500/10` 
             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50 hover:shadow-md"
         )}
       >
-        <Icon className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
+        {/* Responsive icon sizing */}
+        <Icon className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 transform transition-transform duration-200 group-hover:scale-110" />
         {shortcut && (
-          <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-            {shortcut}
+          <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center font-medium hidden sm:flex">
+            <span className="text-[8px] sm:text-xs">{shortcut}</span>
           </span>
         )}
       </Button>
@@ -169,14 +171,15 @@ export const Toolbar = ({
   return (
     <div
       className={cn(
-        "w-full flex flex-row items-center rounded-2xl px-4 py-2 mt-2 shadow-lg",
+        // Responsive width and padding
+        "w-full max-w-xs sm:max-w-2xl lg:max-w-4xl flex flex-row items-center rounded-xl sm:rounded-2xl px-2 sm:px-4 py-1 sm:py-2 mt-1 sm:mt-2 shadow-lg",
         "bg-white/90 dark:bg-[#363d47]",
         "border border-gray-200 dark:border-none",
         "backdrop-blur-sm"
       )}
     >
       {/* Toolbar buttons */}
-      <div className="flex flex-row items-center gap-2">
+      <div className="flex flex-row items-center gap-1 sm:gap-2">
         {basicTools.slice(0, 2).map((tool) => (
           <ToolButton
             key={tool.id}
@@ -196,25 +199,27 @@ export const Toolbar = ({
               variant={shapes.some(s => s.id === activeTool) ? "default" : "ghost"}
               size="sm"
               className={cn(
-                "h-10 w-10 rounded-xl flex items-center justify-center relative",
+                // Responsive sizing for shapes button
+                "h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-xl flex items-center justify-center relative",
                 "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#4a5361] dark:text-white dark:hover:bg-[#5a6473]",
                 shapes.some(s => s.id === activeTool) && "ring-2 ring-blue-400"
               )}
             >
-              <Shapes className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-                ▼
+              <Shapes className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+              <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center font-medium hidden sm:flex">
+                <span className="text-[8px] sm:text-xs">▼</span>
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
             className={cn(
-              "border border-gray-200 rounded-xl shadow-xl mt-2 p-2 min-w-[180px]",
+              "border border-gray-200 rounded-xl shadow-xl mt-2 p-2 min-w-[160px] sm:min-w-[180px]",
               "bg-white text-gray-800 dark:bg-[#23272f] dark:text-white dark:border-none"
             )}
           >
-            <div className="grid grid-cols-4 gap-2">
+            {/* Responsive grid for shapes */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {shapes.map((shape) => (
                 <DropdownMenuItem
                   key={shape.id}
@@ -227,11 +232,11 @@ export const Toolbar = ({
                       : ""
                   )}
                 >
-                  <shape.icon className="h-5 w-5" />
-                  <span className="text-xs">{shape.label}</span>
+                  <shape.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-[10px] sm:text-xs">{shape.label}</span>
                   {ICON_SHORTCUTS[shape.id] && (
-                    <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-                      {ICON_SHORTCUTS[shape.id]}
+                    <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center font-medium hidden sm:flex">
+                      <span className="text-[8px] sm:text-xs">{ICON_SHORTCUTS[shape.id]}</span>
                     </span>
                   )}
                 </DropdownMenuItem>
@@ -254,12 +259,15 @@ export const Toolbar = ({
       </div>
       {/* Spacer */}
       <div className="flex-1" />
-      {/* Action buttons */}
-      <div className="flex flex-row items-center gap-2">
+      {/* Action buttons - Hide some on very small screens */}
+      <div className="flex flex-row items-center gap-1 sm:gap-2">
         <ToolButton onClick={onUndo} icon={Undo} label="Undo" colorClass="blue" />
         <ToolButton onClick={onClear} icon={Trash2} label="Clear" colorClass="red" />
-        <ToolButton onClick={() => onZoom('in')} icon={ZoomIn} label="Zoom In" colorClass="blue" />
-        <ToolButton onClick={() => onZoom('out')} icon={ZoomOut} label="Zoom Out" colorClass="blue" />
+        {/* Hide zoom buttons on mobile */}
+        <div className="hidden sm:flex gap-1 sm:gap-2">
+          <ToolButton onClick={() => onZoom('in')} icon={ZoomIn} label="Zoom In" colorClass="blue" />
+          <ToolButton onClick={() => onZoom('out')} icon={ZoomOut} label="Zoom Out" colorClass="blue" />
+        </div>
         <ToolButton onClick={onShowExport} icon={Download} label="Export" colorClass="green" />
         {/* Settings popover */}
         <DropdownMenu>
@@ -268,17 +276,17 @@ export const Toolbar = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "h-10 w-10 rounded-xl",
+                "h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-xl",
                 "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#23272f] dark:text-white dark:hover:bg-[#363d47]"
               )}
             >
-              <ChevronDown className="h-5 w-5" />
+              <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
             className={cn(
-              "border border-gray-200 rounded-xl shadow-xl mt-2 p-4 min-w-[280px]",
+              "border border-gray-200 rounded-xl shadow-xl mt-2 p-4 w-64 sm:min-w-[280px]",
               "bg-white text-gray-800 dark:bg-[#23272f] dark:text-white dark:border-none"
             )}
           >
@@ -294,7 +302,7 @@ export const Toolbar = ({
                     <button
                       key={color}
                       className={cn(
-                        "w-8 h-8 rounded-md border-2 transition-all duration-200",
+                        "w-6 h-6 sm:w-8 sm:h-8 rounded-md border-2 transition-all duration-200",
                         activeColor === color 
                           ? "border-blue-500 ring-2 ring-blue-400" 
                           : "border-gray-200 hover:border-blue-400 dark:border-[#4a5361]"
@@ -337,6 +345,32 @@ export const Toolbar = ({
               </div>
 
               <Separator className="bg-gray-200 dark:bg-[#4a5361]" />
+
+              {/* Mobile-only zoom controls */}
+              <div className="space-y-2 sm:hidden">
+                <h4 className="text-sm font-medium text-gray-800 dark:text-white">Zoom</h4>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onZoom('in')}
+                    className="flex-1 gap-2 text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                    <span>Zoom In</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onZoom('out')}
+                    className="flex-1 gap-2 text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#363d47]"
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                    <span>Zoom Out</span>
+                  </Button>
+                </div>
+                <Separator className="bg-gray-200 dark:bg-[#4a5361]" />
+              </div>
 
               {/* Theme Toggle Section */}
               <div className="space-y-2">
