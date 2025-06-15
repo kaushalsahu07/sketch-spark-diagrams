@@ -4,7 +4,6 @@ import { Toolbar } from "./Toolbar";
 import { AIAssistant } from "./AIAssistant";
 import { ExportPanel } from "./ExportPanel";
 import { toast } from "sonner";
-import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 
 export type Tool = 
@@ -731,13 +730,6 @@ export const Canvas = () => {
           onStrokeWidthChange={setStrokeWidth}
           canvas={fabricCanvas}
         />
-      </div>
-
-      {/* Responsive Theme Toggle */}
-      <div className="absolute top-16 left-2 z-10
-                      sm:top-4 sm:left-4
-                      lg:top-4 lg:left-4">
-        <ThemeToggle />
       </div>
 
       {/* AI Assistant Panel - Responsive */}

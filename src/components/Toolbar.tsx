@@ -20,7 +20,9 @@ import {
   Pentagon,
   Hexagon,
   Shapes,
-  ChevronDown
+  ChevronDown,
+  Sun,
+  Moon
 } from "lucide-react";
 import { Tool } from "./Canvas";
 import {
@@ -36,6 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const ICON_SHORTCUTS: Record<string, string> = {
   select: '1',
@@ -116,6 +119,8 @@ export const Toolbar = ({
   onStrokeWidthChange,
   canvas
 }: ToolbarProps) => {
+  const { theme, toggleTheme } = useTheme();
+
   console.log("Toolbar activeTool:", activeTool);
   const basicTools = [
     { 
@@ -277,6 +282,31 @@ export const Toolbar = ({
                   />
                   <span className="text-white text-sm w-8 text-center">{strokeWidth}px</span>
                 </div>
+              </div>
+
+              <Separator className="bg-[#4a5361]" />
+
+              {/* Theme Toggle Section */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-white">Theme</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleTheme}
+                  className="w-full justify-start gap-2 text-white hover:bg-[#363d47]"
+                >
+                  {theme === 'light' ? (
+                    <>
+                      <Moon className="h-4 w-4" />
+                      <span>Dark Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="h-4 w-4" />
+                      <span>Light Mode</span>
+                    </>
+                  )}
+                </Button>
               </div>
 
               <Separator className="bg-[#4a5361]" />
