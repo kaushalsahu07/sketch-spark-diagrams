@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
@@ -35,6 +34,8 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+import { ColorPicker } from "./ColorPicker";
+import { AIAssistant } from "./AIAssistant";
 
 const ICON_SHORTCUTS: Record<string, string> = {
   select: '1',
@@ -59,6 +60,11 @@ interface ToolbarProps {
   onZoom: (direction: 'in' | 'out') => void;
   onShowAI: () => void;
   onShowExport: () => void;
+  activeColor: string;
+  onColorChange: (color: string) => void;
+  strokeWidth: number;
+  onStrokeWidthChange: (width: number) => void;
+  canvas: any;
 }
 
 interface ToolButtonProps {
@@ -103,7 +109,12 @@ export const Toolbar = ({
   onUndo, 
   onZoom,
   onShowAI,
-  onShowExport
+  onShowExport,
+  activeColor,
+  onColorChange,
+  strokeWidth,
+  onStrokeWidthChange,
+  canvas
 }: ToolbarProps) => {
   console.log("Toolbar activeTool:", activeTool);
   const basicTools = [
@@ -145,204 +156,147 @@ export const Toolbar = ({
   ];
 
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 transform z-50 max-w-[95vw] overflow-x-auto">
-      <div className="bg-gradient-to-b from-white/95 to-white/90 dark:from-gray-800/95 dark:to-gray-800/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg shadow-black/5 dark:shadow-white/5 border border-gray-200/20 dark:border-gray-700/20 p-2 sm:p-3 flex items-center gap-2 sm:gap-3 min-w-max">
-        
-        {/* Basic Tools - Always visible */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {basicTools.slice(0, 2).map((tool) => (
-            <ToolButton
-              key={tool.id}
-              isActive={activeTool === tool.id}
-              onClick={() => onToolClick(tool.id)}
-              icon={tool.icon}
-              label={tool.label}
-              tooltip={tool.tooltip}
-            />
-          ))}
-        </div>
-
-        {/* Mobile: Show text and eraser in dropdown for smaller screens */}
-        <div className="sm:hidden">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 rounded-xl"
-              >
-                <Type className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg">
-              {basicTools.slice(2).map((tool) => (
+    <div className="w-full flex flex-row items-center bg-[#363d47] rounded-2xl px-4 py-2 mt-2 shadow-lg">
+      {/* Toolbar buttons */}
+      <div className="flex flex-row items-center gap-2">
+        {basicTools.slice(0, 2).map((tool) => (
+          <ToolButton
+            key={tool.id}
+            isActive={activeTool === tool.id}
+            onClick={() => onToolClick(tool.id)}
+            icon={tool.icon}
+            label={tool.label}
+            tooltip={tool.tooltip}
+            colorClass="blue"
+          />
+        ))}
+        {/* Shapes Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant={shapes.some(s => s.id === activeTool) ? "default" : "ghost"}
+              size="sm"
+              className={cn(
+                "h-10 w-10 rounded-xl flex items-center justify-center bg-[#4a5361] text-white hover:bg-[#5a6473]",
+                shapes.some(s => s.id === activeTool) && "ring-2 ring-blue-400"
+              )}
+            >
+              <Shapes className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="bg-[#23272f] border-none rounded-xl shadow-xl mt-2 p-2 min-w-[180px]">
+            <div className="grid grid-cols-4 gap-2">
+              {shapes.map((shape) => (
                 <DropdownMenuItem
-                  key={tool.id}
-                  onClick={() => onToolClick(tool.id)}
+                  key={shape.id}
+                  onClick={() => onToolClick(shape.id)}
                   className={cn(
-                    "flex items-center gap-2",
-                    activeTool === tool.id && "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                    "flex flex-col items-center gap-1 px-2 py-2 rounded-lg cursor-pointer text-white hover:bg-[#363d47]",
+                    activeTool === shape.id && "bg-[#2d3340] ring-2 ring-blue-400"
                   )}
                 >
-                  <tool.icon className="h-4 w-4" />
-                  <span>{tool.label}</span>
+                  <shape.icon className="h-5 w-5" />
+                  <span className="text-xs">{shape.label}</span>
                 </DropdownMenuItem>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Desktop: Show all basic tools */}
-        <div className="hidden sm:flex items-center gap-2">
-          {basicTools.slice(2).map((tool) => (
-            <ToolButton
-              key={tool.id}
-              isActive={activeTool === tool.id}
-              onClick={() => onToolClick(tool.id)}
-              icon={tool.icon}
-              label={tool.label}
-              tooltip={tool.tooltip}
-              shortcut={ICON_SHORTCUTS[tool.id]}
-            />
-          ))}
-        </div>
-
-        {/* Shapes Dropdown */}
-        <HoverCard openDelay={300}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <HoverCardTrigger asChild>
-                <Button
-                  variant={shapes.some(s => s.id === activeTool) ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "h-8 sm:h-10 rounded-xl px-2 sm:px-4 flex items-center gap-1 sm:gap-2 transition-all duration-300 transform hover:scale-105 active:scale-95",
-                    shapes.some(s => s.id === activeTool)
-                      ? "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 shadow-lg shadow-blue-500/20 dark:shadow-blue-500/10" 
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:shadow-md"
-                  )}
-                >
-                  <Shapes className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-200 group-hover:scale-110" />
-                  <span className="hidden sm:block text-sm font-medium">Shapes</span>
-                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-70" />
-                </Button>
-              </HoverCardTrigger>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="start" 
-              className="p-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-gray-200/20 dark:border-gray-700/20 rounded-xl shadow-xl z-50"
-            >
-              <div className="grid grid-cols-2 gap-2 min-w-[200px] sm:min-w-[240px]">
-                {shapes.map((shape) => (
-                  <DropdownMenuItem
-                    key={shape.id}
-                    onClick={() => onToolClick(shape.id)}
-                    className={cn(
-                      "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-lg transition-all duration-200",
-                      activeTool === shape.id 
-                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" 
-                        : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    )}
-                  >
-                    <shape.icon className="h-5 w-5" />
-                    <span className="text-sm font-medium">{shape.label}</span>
-                  </DropdownMenuItem>
-                ))}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {basicTools.slice(2).map((tool) => (
+          <ToolButton
+            key={tool.id}
+            isActive={activeTool === tool.id}
+            onClick={() => onToolClick(tool.id)}
+            icon={tool.icon}
+            label={tool.label}
+            tooltip={tool.tooltip}
+            colorClass="blue"
+          />
+        ))}
+      </div>
+      {/* Spacer */}
+      <div className="flex-1" />
+      {/* Action buttons */}
+      <div className="flex flex-row items-center gap-2">
+        <ToolButton onClick={onUndo} icon={Undo} label="Undo" colorClass="blue" />
+        <ToolButton onClick={onClear} icon={Trash2} label="Clear" colorClass="red" />
+        <ToolButton onClick={() => onZoom('in')} icon={ZoomIn} label="Zoom In" colorClass="blue" />
+        <ToolButton onClick={() => onZoom('out')} icon={ZoomOut} label="Zoom Out" colorClass="blue" />
+        <ToolButton onClick={onShowExport} icon={Download} label="Export" colorClass="green" />
+        {/* Settings popover */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-10 w-10 rounded-xl bg-[#23272f] text-white hover:bg-[#363d47]">
+              <ChevronDown className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#23272f] border-none rounded-xl shadow-xl mt-2 p-4 min-w-[280px]">
+            <div className="space-y-4">
+              {/* Color Picker Section */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-white">Color</h4>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    "#1e40af", "#dc2626", "#059669", "#d97706", "#7c3aed", 
+                    "#be185d", "#0891b2", "#65a30d", "#000000", "#6b7280"
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      className={cn(
+                        "w-8 h-8 rounded-md border-2 transition-all duration-200",
+                        activeColor === color 
+                          ? "border-blue-500 ring-2 ring-blue-400" 
+                          : "border-[#4a5361] hover:border-blue-400"
+                      )}
+                      style={{ backgroundColor: color }}
+                      onClick={() => onColorChange(color)}
+                    />
+                  ))}
+                </div>
+                <input
+                  type="color"
+                  value={activeColor}
+                  onChange={(e) => onColorChange(e.target.value)}
+                  className="w-full h-8 rounded-md cursor-pointer border-none bg-[#363d47]"
+                />
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </HoverCard>
 
-        <Separator orientation="vertical" className="h-6 sm:h-8 bg-gray-200/50 dark:bg-gray-600/50" />
+              <Separator className="bg-[#4a5361]" />
 
-        {/* Action Tools */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          <ToolButton
-            onClick={onUndo}
-            icon={Undo}
-            label="Undo"
-            tooltip="Undo your last action"
-          />
-          <ToolButton
-            onClick={onClear}
-            icon={Trash2}
-            label="Clear"
-            colorClass="red"
-            tooltip="Clear the entire canvas"
-          />
-        </div>
+              {/* Stroke Width Section */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-white">Stroke Width</h4>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    value={strokeWidth}
+                    onChange={(e) => onStrokeWidthChange(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-[#363d47] rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-white text-sm w-8 text-center">{strokeWidth}px</span>
+                </div>
+              </div>
 
-        {/* Desktop: Zoom and Feature Controls */}
-        <div className="hidden md:flex items-center gap-2">
-          <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
-          
-          <div className="flex items-center gap-2">
-            <ToolButton
-              onClick={() => onZoom('in')}
-              icon={ZoomIn}
-              label="Zoom In"
-              tooltip="Zoom in to see more details"
-            />
-            <ToolButton
-              onClick={() => onZoom('out')}
-              icon={ZoomOut}
-              label="Zoom Out"
-              tooltip="Zoom out to see more of the canvas"
-            />
-          </div>
+              <Separator className="bg-[#4a5361]" />
 
-          <Separator orientation="vertical" className="h-8 bg-gray-200/50 dark:bg-gray-600/50" />
-
-          <div className="flex items-center gap-2">
-            <ToolButton
-              onClick={onShowAI}
-              icon={Sparkles}
-              label="AI Assistant"
-              colorClass="purple"
-              tooltip="Get help from our AI Assistant"
-            />
-            <ToolButton
-              onClick={onShowExport}
-              icon={Download}
-              label="Export"
-              colorClass="green"
-              tooltip="Export your diagram"
-            />
-          </div>
-        </div>
-
-        {/* Mobile: Feature Controls in dropdown */}
-        <div className="md:hidden">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 rounded-xl"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg">
-              <DropdownMenuItem onClick={() => onZoom('in')} className="flex items-center gap-2">
-                <ZoomIn className="h-4 w-4" />
-                <span>Zoom In</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onZoom('out')} className="flex items-center gap-2">
-                <ZoomOut className="h-4 w-4" />
-                <span>Zoom Out</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onShowAI} className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                <span>AI Assistant</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onShowExport} className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                <span>Export</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+              {/* AI Assistant Section */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-white">AI Assistant</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onShowAI}
+                  className="w-full justify-start gap-2 text-white hover:bg-[#363d47]"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>Open AI Assistant</span>
+                </Button>
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { Toolbar } from "./Toolbar";
-import { ColorPicker } from "./ColorPicker";
 import { AIAssistant } from "./AIAssistant";
 import { ExportPanel } from "./ExportPanel";
 import { toast } from "sonner";
@@ -726,18 +725,11 @@ export const Canvas = () => {
           onZoom={handleZoom}
           onShowAI={() => setShowAI(true)}
           onShowExport={() => setShowExport(true)}
-        />
-      </div>
-
-      {/* Responsive Color Picker & Settings */}
-      <div className="absolute top-16 right-2 z-10
-                      sm:top-4 sm:right-4
-                      lg:top-4 lg:right-4">
-        <ColorPicker 
-          color={activeColor} 
-          onChange={handleColorChange}
+          activeColor={activeColor}
+          onColorChange={handleColorChange}
           strokeWidth={strokeWidth}
           onStrokeWidthChange={setStrokeWidth}
+          canvas={fabricCanvas}
         />
       </div>
 
