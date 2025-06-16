@@ -30,7 +30,7 @@ const ICON_SHORTCUTS: Record<string, string> = {
   circle: 'c',
   line: 'l',
   triangle: '3',
-  pencil: '2',
+  draw: '2',
   text: 't',
   eraser: '0',
   star: 's',
