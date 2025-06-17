@@ -539,8 +539,6 @@ export const Canvas = () => {
         fabricCanvas.add(finalShape);
         fabricCanvas.setActiveObject(finalShape);
         fabricCanvas.renderAll();
-        console.log(`Created ${activeTool} shape successfully`);
-        toast(`${activeTool} created!`);
       }
       
       setStartPoint(null);

@@ -36,8 +36,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
-import { ColorPicker } from "./ColorPicker";
-import { AIAssistant } from "./AIAssistant";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const ICON_SHORTCUTS: Record<string, string> = {
@@ -168,7 +166,7 @@ export const Toolbar = ({
   return (
     <div
       className={cn(
-        "w-full flex flex-row items-center rounded-2xl px-4 py-2 mt-2 shadow-lg",
+        "w-full flex flex-col sm:flex-row items-center rounded-2xl px-2 sm:px-4 py-2 mt-2 shadow-lg",
         "bg-white/90 dark:bg-[#363d47]",
         "border border-gray-200 dark:border-none",
         "backdrop-blur-sm"
@@ -254,7 +252,7 @@ export const Toolbar = ({
       {/* Spacer */}
       <div className="flex-1" />
       {/* Action buttons */}
-      <div className="flex flex-row items-center gap-2">
+      <div className="flex flex-row items-center gap-2 mt-2 sm:mt-0">
         <ToolButton onClick={onUndo} icon={Undo} label="Undo" colorClass="blue" />
         <ToolButton onClick={onClear} icon={Trash2} label="Clear" colorClass="red" />
         <ToolButton onClick={() => onZoom('in')} icon={ZoomIn} label="Zoom In" colorClass="blue" />
