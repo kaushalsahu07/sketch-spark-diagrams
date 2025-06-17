@@ -1,73 +1,75 @@
-# Welcome to your Lovable project
+# SketchSpark - AI-Powered Whiteboard
 
-## Project info
+SketchSpark is a collaborative whiteboard application that leverages AI to help users create and generate diagrams effortlessly. It combines the power of real-time collaboration with intelligent diagram generation capabilities.
 
-**URL**: https://lovable.dev/projects/23655d36-2fbb-4c56-9d80-059d208ae40f
+## Features
 
-## How can I edit this code?
+- 🎨 Interactive whiteboard interface
+- 🤖 AI-assisted diagram generation
+- 📱 Responsive design
+- 🎯 Intuitive drawing tools
+- 💾 Auto-save functionality
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend Framework**: React with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn-ui
+- **State Management**: React Hooks
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/23655d36-2fbb-4c56-9d80-059d208ae40f) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v16 or higher)
+- npm (v7 or higher)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/sketch-spark-diagrams.git
+cd sketch-spark-diagrams
+```
 
-Follow these steps:
+2. Install dependencies:
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open your browser and navigate to `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Development
 
-**Use GitHub Codespaces**
+The project uses Vite for development, which provides:
+- Fast hot module replacement (HMR)
+- TypeScript support out of the box
+- Optimized build process
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Contributing
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This project is built with:
+## Acknowledgments
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Thanks to all contributors who have helped shape this project
+- Special thanks to the open-source community for the amazing tools and libraries
 
-## How can I deploy this project?
+## Contact
 
-Simply open [Lovable](https://lovable.dev/projects/23655d36-2fbb-4c56-9d80-059d208ae40f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+For any inquiries, reach out at [kaushal.r.sahu@outlook.com].<br>
+GitHub: [@kaushalsahu07](https://github.com/kaushalsahu07).<br>
+Linkedin: [@kaushalsahu07](www.linkedin.com/in/kaushalsahu07).<br>
+Instagram: [@cd.kaushal](https://www.instagram.com/cd.kaushal?igsh=cTVram1ia3Vvamxz).<br>
+Portfolio: [Website Link ](https://kaushalsahu07.github.io/portfolio/).<br>
+X (Tweeter): [@kaushalsahu_07](https://x.com/kaushalsahu_07?t=7nk-jApWrJkgW6YwklJZWQ&s=09).<br>
