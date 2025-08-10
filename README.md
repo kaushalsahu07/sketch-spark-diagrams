@@ -1,4 +1,4 @@
-# SketchSpark - AI-Powered Whiteboard
+# SketchSpark : AI-Powered Whiteboard
 
 SketchSpark is a collaborative whiteboard application that leverages AI to help users create and generate diagrams effortlessly. It combines the power of real-time collaboration with intelligent diagram generation capabilities.
 
