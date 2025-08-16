@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize the Gemini API
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
@@ -19,7 +19,7 @@ export const generateGraphvizDiagram = async (prompt: string): Promise<string> =
     }
 
     const model = genAI.getGenerativeModel({ 
-      model: 'gemma-3-27b-it',
+      model: 'gemini-1.5-flash',
     });
 
     // Use the prompt as-is (it may be for DOT or JSON)
