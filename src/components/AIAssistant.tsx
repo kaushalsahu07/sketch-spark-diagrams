@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { generateMistralResponse } from "@/lib/mistral";
 import { generateChatResponse } from "@/lib/cohere";
+import { useCallback, memo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Drawer,
@@ -167,7 +168,7 @@ const AIContent = ({
       canvas.renderAll();
       const canvasJson = canvas.toJSON();
       localStorage.setItem('canvasData', JSON.stringify(canvasJson));
-      console.log('Successfully added objects to canvas:', objects);
+
     } catch (error) {
       console.error('Error adding objects to canvas:', error);
       toast.error('Failed to add diagram to canvas');
@@ -185,22 +186,34 @@ const AIContent = ({
     setIsGenerating(true);
 
     try {
-      console.log("Generating diagram for prompt:", generatePrompt);
       const canvasDescription = getCanvasDescription();
       const response = await generateMistralResponse(generatePrompt, canvasDescription);
-      console.log("Mistral response:", response);
-      const jsonMatch = response.match(/```json\n([\s\S]*?)```/);
-      console.log("Extracted JSON code:", jsonMatch);
+
+      // Try to extract JSON from code fences (handles various whitespace patterns)
+      const jsonMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+
+      let jsonData: any = null;
+      let jsonSource = '';
 
       if (jsonMatch) {
-        try {
-          console.log("Parsing JSON diagram");
-          const jsonData = JSON.parse(jsonMatch[1]);
-          console.log("JSON parsed successfully:", jsonData);
+        jsonSource = jsonMatch[1].trim();
+      } else {
+        // Fallback: try to find raw JSON object in the response
+        const rawJsonMatch = response.match(/(\{[\s\S]*"objects"\s*:\s*\[[\s\S]*\][\s\S]*\})/);
+        if (rawJsonMatch) {
+          jsonSource = rawJsonMatch[1].trim();
+        }
+      }
 
+      if (jsonSource) {
+        try {
+          jsonData = JSON.parse(jsonSource);
           await addToCanvas(jsonData);
           toast.success('Diagram added to canvas!');
-          const cleanResponse = response.replace(/```json[\s\S]*?```/, '').trim();
+          const cleanResponse = response
+            .replace(/```(?:json)?[\s\S]*?```/, '')
+            .replace(/\{[\s\S]*"objects"\s*:\s*\[[\s\S]*\][\s\S]*\}/, '')
+            .trim();
           if (cleanResponse) {
             const aiMessage: Message = {
               role: 'assistant',
@@ -209,22 +222,20 @@ const AIContent = ({
             };
             setGenerateMessages(prev => [...prev, aiMessage]);
           }
-        } catch (error) {
-          console.error('Error parsing diagram:', error);
-          toast.error("Failed to render diagram, but providing text response.");
-          const cleanResponse = response.replace(/```json[\s\S]*?```/, '').trim();
+        } catch (parseError) {
+          console.error('Error parsing diagram JSON:', parseError);
+          toast.error("Failed to parse diagram JSON. The AI response was malformed.");
           const aiMessage: Message = {
             role: 'assistant',
-            content: cleanResponse,
+            content: `Failed to parse diagram. Raw response:\n\n${response}`,
             timestamp: new Date()
           };
           setGenerateMessages(prev => [...prev, aiMessage]);
         }
       } else {
-        const cleanResponse = response.trim();
         const aiMessage: Message = {
           role: 'assistant',
-          content: cleanResponse,
+          content: response.trim(),
           timestamp: new Date()
         };
         setGenerateMessages(prev => [...prev, aiMessage]);
@@ -232,16 +243,21 @@ const AIContent = ({
       }
     } catch (error: any) {
       console.error("Generate error:", error);
-      if (error.message?.includes('API key is not set')) {
+      const errorMsg = error.message || "Unknown error";
+      if (errorMsg.includes('API key is not set')) {
         toast.error("API key not configured. Please check your environment setup.");
-      } else if (error.message?.includes('Failed to render diagram')) {
-        toast.error("Failed to create diagram. Please try a different diagram type.");
       } else {
-        toast.error("Failed to generate diagram. Please try again.");
+        toast.error(`Failed to generate diagram: ${errorMsg}`);
       }
+      const aiMessage: Message = {
+        role: 'assistant',
+        content: `Error: ${errorMsg}`,
+        timestamp: new Date()
+      };
+      setGenerateMessages(prev => [...prev, aiMessage]);
     } finally {
       setIsGenerating(false);
-      setGeneratePrompt(""); // Only clear after generation completes
+      setGeneratePrompt("");
     }
   };
 
@@ -269,10 +285,10 @@ const AIContent = ({
             AI Assistant
           </h3>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onClose} 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
           className="h-6 w-6 sm:h-7 sm:w-7 rounded-full text-muted-foreground 
             hover:text-primary hover:bg-primary/10 hover:scale-105
             transition-all duration-200"
@@ -318,14 +334,14 @@ const AIContent = ({
                 key={index}
                 className={cn(
                   "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
-                  message.role === 'user' 
+                  message.role === 'user'
                     ? "ml-auto bg-primary text-primary-foreground"
                     : "bg-muted/50 text-foreground"
                 )}
               >
                 <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
                 {message.diagram && (
-                  <div 
+                  <div
                     className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
                     dangerouslySetInnerHTML={{ __html: message.diagram }}
                   />
@@ -346,14 +362,14 @@ const AIContent = ({
                 key={index}
                 className={cn(
                   "flex flex-col max-w-[85%] rounded-lg p-2 sm:p-3",
-                  message.role === 'user' 
+                  message.role === 'user'
                     ? "ml-auto bg-primary text-primary-foreground"
                     : "bg-muted/50 text-foreground"
                 )}
               >
                 <div className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</div>
                 {message.diagram && (
-                  <div 
+                  <div
                     className="mt-1 sm:mt-2 p-1 sm:p-2 bg-background/50 rounded-md"
                     dangerouslySetInnerHTML={{ __html: message.diagram }}
                   />
@@ -366,14 +382,14 @@ const AIContent = ({
           </div>
         </ScrollArea>
       )}
-      
+
       {/* Input form per mode */}
       {(mode === 'generate' || mode === 'chat') && (
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 flex-shrink-0">
           <div className="relative group">
             <Textarea
               ref={textareaRef}
-              placeholder={mode === 'generate' 
+              placeholder={mode === 'generate'
                 ? "Describe the diagram you want to create..."
                 : "Ask me anything! I can help with your canvas..."}
               value={mode === 'generate' ? generatePrompt : chatPrompt}
@@ -390,13 +406,13 @@ const AIContent = ({
             <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 to-transparent 
               dark:from-primary/10 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          
-          <Button 
+
+          <Button
             type="submit"
-            disabled={isGenerating || !(mode === 'generate' ? generatePrompt.trim() : chatPrompt.trim())} 
+            disabled={isGenerating || !(mode === 'generate' ? generatePrompt.trim() : chatPrompt.trim())}
             className={`w-full h-9 sm:h-11 transition-all duration-300 transform rounded-xl text-xs sm:text-sm
-              ${isGenerating 
-                ? 'bg-primary/80 cursor-wait' 
+              ${isGenerating
+                ? 'bg-primary/80 cursor-wait'
                 : 'bg-gradient-to-r from-primary via-primary/90 to-primary/80 hover:scale-[1.02]'
               } text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/30
               disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed`}
@@ -424,7 +440,7 @@ const AIContent = ({
 
       {isGenerating && (
         <p className="mt-2 sm:mt-4 text-[10px] sm:text-xs text-center text-muted-foreground/80 animate-pulse">
-          {mode === 'generate' 
+          {mode === 'generate'
             ? 'Creating your visualization with AI magic ✨'
             : 'Analyzing your canvas and crafting a response...'}
         </p>

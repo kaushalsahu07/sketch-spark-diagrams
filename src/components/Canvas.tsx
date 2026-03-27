@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as fabric from "fabric";
 import { Toolbar } from "./Toolbar";
 import { AIAssistant } from "./AIAssistant";
@@ -22,7 +22,7 @@ export type Tool =
   | "pentagon"
   | "hexagon";
 
-// Add ICON_SHORTCUTS mapping for keyboard shortcuts
+// Stable keyboard shortcuts mapping
 const ICON_SHORTCUTS: Record<string, string> = {
   select: '1',
   rectangle: 'r',
@@ -38,6 +38,18 @@ const ICON_SHORTCUTS: Record<string, string> = {
   hexagon: 'h'
 };
 
+// Pre-compute reverse mapping (key -> tool) once
+const KEY_TO_TOOL: Record<string, string> = Object.entries(ICON_SHORTCUTS).reduce(
+  (acc, [tool, key]) => {
+    acc[key] = tool;
+    return acc;
+  },
+  {} as Record<string, string>
+);
+
+// Shape tools set for O(1) lookup
+const SHAPE_TOOLS = new Set(['rectangle', 'circle', 'line', 'triangle', 'star', 'pentagon', 'hexagon', 'diamond']);
+
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
@@ -45,10 +57,8 @@ export const Canvas = () => {
   const [activeColor, setActiveColor] = useState("#1e40af");
   const [activeTool, setActiveTool] = useState<Tool>("select");
   const [strokeWidth, setStrokeWidth] = useState(2);
-  const [isErasing, setIsErasing] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [eraserPath, setEraserPath] = useState<{x: number, y: number}[]>([]);
   const { theme } = useTheme();
 
   // Shape drawing state
@@ -56,12 +66,24 @@ export const Canvas = () => {
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
 
   // Get theme-appropriate color
-  const getThemeColor = (color: string) => {
+  const getThemeColor = useCallback((color: string) => {
     if (color !== "#000000" && color !== "#ffffff" && color !== "#1e40af") {
       return color;
     }
     return theme === 'dark' ? '#ffffff' : '#000000';
-  };
+  }, [theme]);
+
+  // Debounced save to localStorage
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveToLocalStorage = useCallback((canvas: fabric.Canvas) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      const jsonData = canvas.toJSON();
+      localStorage.setItem('canvasData', JSON.stringify(jsonData));
+    }, 300);
+  }, []);
 
   // Initialize canvas
   useEffect(() => {
@@ -80,25 +102,19 @@ export const Canvas = () => {
       isDrawingMode: false,
     });
 
-    // Immediately load saved canvas data
+    // Load saved canvas data
     const savedData = localStorage.getItem('canvasData');
     if (savedData) {
       canvas.loadFromJSON(savedData, () => {
         canvas.renderAll();
-        console.log('Canvas data loaded automatically');
       });
     }
 
-    // Setup automatic saving
-    const saveToLocalStorage = () => {
-      const jsonData = canvas.toJSON();
-      localStorage.setItem('canvasData', JSON.stringify(jsonData));
-      console.log('Canvas saved to storage');
-    };
-
-    canvas.on('object:modified', saveToLocalStorage);
-    canvas.on('object:added', saveToLocalStorage);
-    canvas.on('object:removed', saveToLocalStorage);
+    // Setup automatic saving (debounced)
+    const handleSave = () => saveToLocalStorage(canvas);
+    canvas.on('object:modified', handleSave);
+    canvas.on('object:added', handleSave);
+    canvas.on('object:removed', handleSave);
 
     // Initialize the drawing brush
     canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
@@ -107,8 +123,6 @@ export const Canvas = () => {
 
     fabricCanvasRef.current = canvas;
     setFabricCanvas(canvas);
-    console.log("Canvas initialized successfully");
-    toast("Canvas ready! Start creating your diagram!");
 
     const handleResize = () => {
       canvas.setDimensions({
@@ -122,9 +136,12 @@ export const Canvas = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      canvas.off('object:modified', saveToLocalStorage);
-      canvas.off('object:added', saveToLocalStorage);
-      canvas.off('object:removed', saveToLocalStorage);
+      canvas.off('object:modified', handleSave);
+      canvas.off('object:added', handleSave);
+      canvas.off('object:removed', handleSave);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
@@ -158,7 +175,6 @@ export const Canvas = () => {
 
     const themeColor = getThemeColor(activeColor);
 
-    // Update drawing brush
     if (fabricCanvas.freeDrawingBrush) {
       fabricCanvas.freeDrawingBrush.color = themeColor;
       fabricCanvas.freeDrawingBrush.width = strokeWidth;
@@ -168,7 +184,7 @@ export const Canvas = () => {
   }, [activeColor, strokeWidth, theme, fabricCanvas]);
 
   // Apply color to selected object when color is explicitly changed
-  const applyColorToSelected = () => {
+  const applyColorToSelected = useCallback(() => {
     if (!fabricCanvas) return;
 
     const themeColor = getThemeColor(activeColor);
@@ -176,20 +192,14 @@ export const Canvas = () => {
     
     if (activeObject) {
       if (activeObject.type === 'path') {
-        // For drawn paths, change stroke color
         activeObject.set({ stroke: themeColor });
       } else if (activeObject.type === 'textbox' || activeObject.type === 'text') {
-        // For text objects, change fill color
         activeObject.set({ fill: themeColor });
       } else {
-        // For shapes (rectangle, circle, etc.), only change stroke if fill is transparent
-        // This preserves the original fill state of the object
         const currentFill = activeObject.fill;
         if (currentFill === 'transparent' || currentFill === '' || !currentFill) {
-          // Keep transparent fill, only change stroke
           activeObject.set({ stroke: themeColor });
         } else {
-          // Object was intentionally filled, change both fill and stroke
           activeObject.set({ 
             fill: themeColor,
             stroke: themeColor 
@@ -198,10 +208,10 @@ export const Canvas = () => {
       }
       fabricCanvas.renderAll();
     }
-  };
+  }, [fabricCanvas, activeColor, getThemeColor]);
 
   // Helper function to create a regular polygon
-  const createRegularPolygon = (centerX: number, centerY: number, sides: number, radius: number) => {
+  const createRegularPolygon = useCallback((centerX: number, centerY: number, sides: number, radius: number) => {
     const points: { x: number; y: number }[] = [];
     const angleStep = (2 * Math.PI) / sides;
     
@@ -214,10 +224,10 @@ export const Canvas = () => {
     }
     
     return points;
-  };
+  }, []);
 
   // Helper function to create a star shape
-  const createStarPoints = (centerX: number, centerY: number, points: number, outerRadius: number, innerRadius: number) => {
+  const createStarPoints = useCallback((centerX: number, centerY: number, points: number, outerRadius: number, innerRadius: number) => {
     const starPoints: { x: number; y: number }[] = [];
     const angleStep = Math.PI / points;
 
@@ -231,22 +241,79 @@ export const Canvas = () => {
     }
 
     return starPoints;
-  };
+  }, []);
 
   // Helper function to create a diamond shape
-  const createDiamondPoints = (centerX: number, centerY: number, width: number, height: number) => {
+  const createDiamondPoints = useCallback((centerX: number, centerY: number, width: number, height: number) => {
     return [
-      { x: centerX, y: centerY - height / 2 }, // top
-      { x: centerX + width / 2, y: centerY }, // right
-      { x: centerX, y: centerY + height / 2 }, // bottom
-      { x: centerX - width / 2, y: centerY }, // left
+      { x: centerX, y: centerY - height / 2 },
+      { x: centerX + width / 2, y: centerY },
+      { x: centerX, y: centerY + height / 2 },
+      { x: centerX - width / 2, y: centerY },
     ];
-  };
+  }, []);
 
   // Check if current tool is a shape tool
-  const isShapeTool = (tool: Tool): boolean => {
-    return ['rectangle', 'circle', 'line', 'triangle', 'star', 'pentagon', 'hexagon', 'diamond'].includes(tool);
-  };
+  const isShapeTool = useCallback((tool: Tool): boolean => {
+    return SHAPE_TOOLS.has(tool);
+  }, []);
+
+  // Create shape helper to reduce duplication
+  const createShape = useCallback((
+    activeTool: Tool,
+    startPoint: { x: number; y: number },
+    pointer: { x: number; y: number },
+    options: Record<string, any>
+  ) => {
+    const width = Math.abs(pointer.x - startPoint.x);
+    const height = Math.abs(pointer.y - startPoint.y);
+    const left = Math.min(pointer.x, startPoint.x);
+    const top = Math.min(pointer.y, startPoint.y);
+    const centerX = (pointer.x + startPoint.x) / 2;
+    const centerY = (pointer.y + startPoint.y) / 2;
+
+    switch (activeTool) {
+      case 'rectangle':
+        return new fabric.Rect({ left, top, width, height, ...options });
+      case 'circle': {
+        const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
+        return new fabric.Circle({ left: centerX - radius, top: centerY - radius, radius, ...options });
+      }
+      case 'line':
+        return new fabric.Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
+          stroke: options.stroke,
+          strokeWidth: options.strokeWidth,
+          selectable: options.selectable,
+          evented: options.evented,
+          ...(options.isTemporary !== undefined ? { isTemporary: options.isTemporary } : {}),
+          ...(options.hasControls !== undefined ? { hasControls: options.hasControls } : {}),
+          ...(options.hasBorders !== undefined ? { hasBorders: options.hasBorders } : {}),
+        });
+      case 'triangle':
+        return new fabric.Triangle({ left, top, width, height, ...options });
+      case 'star': {
+        const r = Math.max(width, height) / 2;
+        const starPts = createStarPoints(0, 0, 5, r, r / 2);
+        return new fabric.Polygon(starPts, { ...options, left: centerX - r, top: centerY - r });
+      }
+      case 'pentagon': {
+        const r = Math.max(width, height) / 2;
+        const pentPts = createRegularPolygon(0, 0, 5, r);
+        return new fabric.Polygon(pentPts, { ...options, left: centerX - r, top: centerY - r });
+      }
+      case 'hexagon': {
+        const r = Math.max(width, height) / 2;
+        const hexPts = createRegularPolygon(0, 0, 6, r);
+        return new fabric.Polygon(hexPts, { ...options, left: centerX - r, top: centerY - r });
+      }
+      case 'diamond': {
+        const dPts = createDiamondPoints(0, 0, width, height);
+        return new fabric.Polygon(dPts, { ...options, left: centerX - width / 2, top: centerY - height / 2 });
+      }
+      default:
+        return null;
+    }
+  }, [createRegularPolygon, createStarPoints, createDiamondPoints]);
 
   // Setup shape and text drawing handlers
   useEffect(() => {
@@ -254,7 +321,6 @@ export const Canvas = () => {
 
     const handleMouseDown = (e: any) => {
       const pointer = fabricCanvas.getPointer(e.e);
-      console.log(`Mouse down at: x=${pointer.x}, y=${pointer.y}, tool=${activeTool}`);
       
       // Handle text tool
       if (activeTool === 'text') {
@@ -276,21 +342,14 @@ export const Canvas = () => {
         textbox.selectAll();
         fabricCanvas.renderAll();
         setActiveTool('select');
-        toast("Text added! Click to edit.");
         return;
       }
 
       // Handle shape tools
       if (isShapeTool(activeTool)) {
-        // Don't start drawing if clicking on an existing object
-        if (e.target) {
-          console.log("Clicked on existing object, not creating shape");
-          return;
-        }
-        
+        if (e.target) return;
         setIsDrawing(true);
         setStartPoint(pointer);
-        console.log(`Starting to draw ${activeTool}`);
         return;
       }
     };
@@ -304,19 +363,9 @@ export const Canvas = () => {
       const objects = fabricCanvas.getObjects();
       const tempShape = objects.find(obj => (obj as any).isTemporary);
       if (tempShape) {
-
         fabricCanvas.remove(tempShape);
       }
 
-      // Calculate dimensions
-      const width = Math.abs(pointer.x - startPoint.x);
-      const height = Math.abs(pointer.y - startPoint.y);
-      const left = Math.min(pointer.x, startPoint.x);
-      const top = Math.min(pointer.y, startPoint.y);
-      const centerX = (pointer.x + startPoint.x) / 2;
-      const centerY = (pointer.y + startPoint.y) / 2;
-
-      let shape;
       const shapeOptions = {
         fill: 'transparent',
         stroke: getThemeColor(activeColor),
@@ -326,86 +375,7 @@ export const Canvas = () => {
         isTemporary: true,
       };
 
-      // Create preview shape
-      switch (activeTool) {
-        case 'rectangle':
-          shape = new fabric.Rect({
-            left,
-            top,
-            width,
-            height,
-            ...shapeOptions,
-          });
-          break;
-        case 'circle': {
-          const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
-          shape = new fabric.Circle({
-            left: centerX - radius,
-            top: centerY - radius,
-            radius: radius,
-            ...shapeOptions,
-          });
-          break;
-        }
-        case 'line':
-          shape = new fabric.Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
-            stroke: getThemeColor(activeColor),
-            strokeWidth,
-            selectable: false,
-            evented: false,
-            isTemporary: true,
-          });
-          break;
-        case 'triangle':
-          shape = new fabric.Triangle({
-            left,
-            top,
-            width,
-            height,
-            ...shapeOptions,
-          });
-          break;
-        case 'star': {
-          const radius = Math.max(width, height) / 2;
-          const starPoints = createStarPoints(0, 0, 5, radius, radius / 2);
-          shape = new fabric.Polygon(starPoints, {
-            ...shapeOptions,
-            left: centerX - radius,
-            top: centerY - radius,
-          });
-          break;
-        }
-        case 'pentagon': {
-          const radius = Math.max(width, height) / 2;
-          const pentagonPoints = createRegularPolygon(0, 0, 5, radius);
-          shape = new fabric.Polygon(pentagonPoints, {
-            ...shapeOptions,
-            left: centerX - radius,
-            top: centerY - radius,
-          });
-          break;
-        }
-        case 'hexagon': {
-          const radius = Math.max(width, height) / 2;
-          const hexagonPoints = createRegularPolygon(0, 0, 6, radius);
-          shape = new fabric.Polygon(hexagonPoints, {
-            ...shapeOptions,
-            left: centerX - radius,
-            top: centerY - radius,
-          });
-          break;
-        }
-        case 'diamond': {
-          const diamondPoints = createDiamondPoints(0, 0, width, height);
-          shape = new fabric.Polygon(diamondPoints, {
-            ...shapeOptions,
-            left: centerX - width / 2,
-            top: centerY - height / 2,
-          });
-          break;
-        }
-      }
-
+      const shape = createShape(activeTool, startPoint, pointer, shapeOptions);
       if (shape) {
         fabricCanvas.add(shape);
         fabricCanvas.renderAll();
@@ -416,8 +386,6 @@ export const Canvas = () => {
       if (!isDrawing || !startPoint || !isShapeTool(activeTool)) return;
       
       const pointer = fabricCanvas.getPointer(e.e);
-      console.log(`Mouse up at: x=${pointer.x}, y=${pointer.y}`);
-      
       setIsDrawing(false);
       
       // Remove temporary shape
@@ -427,23 +395,15 @@ export const Canvas = () => {
         fabricCanvas.remove(tempShape);
       }
       
-      // Calculate final dimensions
       const width = Math.abs(pointer.x - startPoint.x);
       const height = Math.abs(pointer.y - startPoint.y);
       
-      // Only create shape if it's big enough (reduced minimum size)
+      // Only create shape if it's big enough
       if (width < 3 && height < 3) {
-        console.log("Shape too small, not creating");
         setStartPoint(null);
         return;
       }
-      
-      const left = Math.min(pointer.x, startPoint.x);
-      const top = Math.min(pointer.y, startPoint.y);
-      const centerX = (pointer.x + startPoint.x) / 2;
-      const centerY = (pointer.y + startPoint.y) / 2;
 
-      let finalShape;
       const finalShapeOptions = {
         fill: 'transparent',
         stroke: getThemeColor(activeColor),
@@ -454,87 +414,7 @@ export const Canvas = () => {
         hasBorders: true,
       };
 
-      // Create final shape
-      switch (activeTool) {
-        case 'rectangle':
-          finalShape = new fabric.Rect({
-            left,
-            top,
-            width,
-            height,
-            ...finalShapeOptions,
-          });
-          break;
-        case 'circle': {
-          const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
-          finalShape = new fabric.Circle({
-            left: centerX - radius,
-            top: centerY - radius,
-            radius: radius,
-            ...finalShapeOptions,
-          });
-          break;
-        }
-        case 'line':
-          finalShape = new fabric.Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
-            stroke: getThemeColor(activeColor),
-            strokeWidth,
-            selectable: true,
-            evented: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
-        case 'triangle':
-          finalShape = new fabric.Triangle({
-            left,
-            top,
-            width,
-            height,
-            ...finalShapeOptions,
-          });
-          break;
-        case 'star': {
-          const radius = Math.max(width, height) / 2;
-          const starPoints = createStarPoints(0, 0, 5, radius, radius / 2);
-          finalShape = new fabric.Polygon(starPoints, {
-            ...finalShapeOptions,
-            left: centerX - radius,
-            top: centerY - radius,
-          });
-          break;
-        }
-        case 'pentagon': {
-          const radius = Math.max(width, height) / 2;
-          const pentagonPoints = createRegularPolygon(0, 0, 5, radius);
-          finalShape = new fabric.Polygon(pentagonPoints, {
-            ...finalShapeOptions,
-            left: centerX - radius,
-            top: centerY - radius,
-          });
-          break;
-        }
-        case 'hexagon': {
-          const radius = Math.max(width, height) / 2;
-          const hexagonPoints = createRegularPolygon(0, 0, 6, radius);
-          finalShape = new fabric.Polygon(hexagonPoints, {
-            ...finalShapeOptions,
-            left: centerX - radius,
-            top: centerY - radius,
-          });
-          break;
-        }
-        case 'diamond': {
-          const diamondPoints = createDiamondPoints(0, 0, width, height);
-          finalShape = new fabric.Polygon(diamondPoints, {
-            ...finalShapeOptions,
-            left: centerX - width / 2,
-            top: centerY - height / 2,
-          });
-          break;
-        }
-      }
-
+      const finalShape = createShape(activeTool, startPoint, pointer, finalShapeOptions);
       if (finalShape) {
         fabricCanvas.add(finalShape);
         fabricCanvas.setActiveObject(finalShape);
@@ -554,36 +434,29 @@ export const Canvas = () => {
       fabricCanvas.off('mouse:move', handleMouseMove);
       fabricCanvas.off('mouse:up', handleMouseUp);
     };
-  }, [fabricCanvas, activeTool, isDrawing, startPoint, activeColor, strokeWidth]);
+  }, [fabricCanvas, activeTool, isDrawing, startPoint, activeColor, strokeWidth, createShape, isShapeTool, getThemeColor]);
 
-  // Handle keyboard events for delete/backspace
+  // Handle keyboard events for delete
   useEffect(() => {
     if (!fabricCanvas) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete') && fabricCanvas.getActiveObjects().length > 0) {
+      if (e.key === 'Delete' && fabricCanvas.getActiveObjects().length > 0) {
         const activeObjects = fabricCanvas.getActiveObjects();
         fabricCanvas.discardActiveObject();
         fabricCanvas.remove(...activeObjects);
         fabricCanvas.renderAll();
-        toast("Objects deleted");
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fabricCanvas]);
 
   // Update tool setup
   useEffect(() => {
     if (!fabricCanvas) return;
-
-    console.log("Setting up tool:", activeTool);
     
-    // Reset canvas modes
     fabricCanvas.isDrawingMode = activeTool === "draw";
     fabricCanvas.selection = activeTool === "select";
     fabricCanvas.defaultCursor = activeTool === "eraser" ? 'crosshair' : 
@@ -603,108 +476,75 @@ export const Canvas = () => {
     // Set up eraser tool
     const handleEraserClick = (e: any) => {
       if (activeTool !== 'eraser') return;
-      
-      const pointer = fabricCanvas.getPointer(e.e);
       const target = fabricCanvas.findTarget(e);
       
       if (target) {
         fabricCanvas.remove(target);
         fabricCanvas.discardActiveObject();
         fabricCanvas.renderAll();
-        console.log('Object erased at:', pointer.x, pointer.y);
-        toast("Object erased");
       }
     };
 
     fabricCanvas.on('mouse:down', handleEraserClick);
-
     return () => {
       fabricCanvas.off('mouse:down', handleEraserClick);
     };
   }, [activeTool, fabricCanvas]);
 
   // Handle tool selection
-  const handleToolClick = (tool: Tool) => {
-    console.log("Tool clicked:", tool);
+  const handleToolClick = useCallback((tool: Tool) => {
     setActiveTool(tool);
-  };
+  }, []);
 
   // Handle canvas clear
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     if (!fabricCanvas) return;
     fabricCanvas.clear();
     const canvasBackgroundColor = theme === 'dark' ? '#111827' : '#ffffff';
     fabricCanvas.backgroundColor = canvasBackgroundColor;
     fabricCanvas.renderAll();
     toast("Canvas cleared!");
-  };
+  }, [fabricCanvas, theme]);
 
   // Handle undo
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     const objects = fabricCanvas?.getObjects();
     if (objects && objects.length > 0) {
       fabricCanvas?.remove(objects[objects.length - 1]);
       fabricCanvas?.renderAll();
-      toast("Undone!");
     }
-  };
+  }, [fabricCanvas]);
 
   // Handle zoom
-  const handleZoom = (direction: 'in' | 'out') => {
+  const handleZoom = useCallback((direction: 'in' | 'out') => {
     if (!fabricCanvas) return;
     const zoom = fabricCanvas.getZoom();
     const newZoom = direction === 'in' ? zoom * 1.1 : zoom * 0.9;
     fabricCanvas.setZoom(Math.min(Math.max(newZoom, 0.1), 5));
     fabricCanvas.renderAll();
-  };
-
-  // Handle color change
-  const handleColorChange = (color: string) => {
-    setActiveColor(color);
-    applyColorToSelected();
-  };
-
-  useEffect(() => {
-    if (!fabricCanvas) return;
-
-    const loadCanvasFromLocalStorage = () => {
-      const savedCanvasData = localStorage.getItem("canvasData");
-      if (savedCanvasData) {
-        fabricCanvas.loadFromJSON(JSON.parse(savedCanvasData), () => {
-          fabricCanvas.renderAll();
-          console.log("Canvas loaded from local storage automatically");
-        });
-      }
-    };
-
-    // Automatically load canvas data on initialization
-    loadCanvasFromLocalStorage();
-
-    // Ensure canvas is displayed immediately
-    fabricCanvas.renderAll();
   }, [fabricCanvas]);
 
-  // Add keyboard shortcut support for tool selection
-  useEffect(() => {
-    const keyToTool = Object.entries(ICON_SHORTCUTS).reduce((acc, [tool, key]) => {
-      acc[key] = tool;
-      return acc;
-    }, {} as Record<string, string>);
+  // Handle color change
+  const handleColorChange = useCallback((color: string) => {
+    setActiveColor(color);
+    applyColorToSelected();
+  }, [applyColorToSelected]);
 
+  // Keyboard shortcut support for tool selection
+  useEffect(() => {
     const handleShortcut = (e: KeyboardEvent) => {
-      console.log("Key pressed:", e.key);
-      // Ignore if typing in an input or textarea
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
-      if (keyToTool[e.key]) {
-        setActiveTool(keyToTool[e.key] as Tool);
-        toast(`Switched to ${(keyToTool[e.key] as string).charAt(0).toUpperCase() + (keyToTool[e.key] as string).slice(1)} tool`);
+      
+      const tool = KEY_TO_TOOL[e.key];
+      if (tool) {
+        setActiveTool(tool as Tool);
         e.preventDefault();
       }
     };
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [ICON_SHORTCUTS, setActiveTool]);
+  }, []);
 
   return (
     <div className="relative w-full h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">

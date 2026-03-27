@@ -7,7 +7,8 @@ if (!apiKey) {
   console.error('Cohere API key is missing. Please check your .env file.');
 }
 
-console.log('API Key available:', !!apiKey); // This will log true/false without exposing the key
+
+
 
 // Initialize Cohere client
 const cohere = new CohereClientV2({

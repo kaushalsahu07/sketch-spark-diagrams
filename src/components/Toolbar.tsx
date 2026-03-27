@@ -124,7 +124,6 @@ export const Toolbar = ({
 }: ToolbarProps) => {
   const { theme, toggleTheme } = useTheme();
 
-  console.log("Toolbar activeTool:", activeTool);
   const basicTools = [
     { 
       id: "select" as Tool, 
