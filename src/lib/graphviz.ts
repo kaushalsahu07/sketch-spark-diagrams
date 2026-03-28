@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-// Initialize the Gemini API client with the Vite env key (empty string if not set).
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+// Initialize the Gemini API client with the Vite env key.
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 
 export const generateGraphvizDiagram = async (prompt: string): Promise<string> => {
   if (!import.meta.env.VITE_GEMINI_API_KEY) {
@@ -9,37 +9,20 @@ export const generateGraphvizDiagram = async (prompt: string): Promise<string> =
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        },
-      ],
-      generationConfig: {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
         temperature: 0.2,
         topP: 0.8,
         topK: 20,
-        maxOutputTokens: 2000,
+        maxOutputTokens: 8192,
       },
     });
 
-    const response = result.response;
-    if (!response) {
-      throw new Error("No response returned from Gemini");
-    }
-
-    // Use the SDK's text() helper — this is the standard way in @google/generative-ai
-    const rawText = response.text();
+    const rawText = response.text;
 
     if (!rawText || rawText.trim() === "") {
-      // Check for safety blocking
-      const pf = response.promptFeedback;
-      if (pf) {
-        throw new Error(`Gemini blocked the response. Details: ${JSON.stringify(pf)}`);
-      }
       throw new Error("Empty response from Gemini.");
     }
 

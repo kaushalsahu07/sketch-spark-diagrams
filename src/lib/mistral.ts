@@ -15,9 +15,10 @@ export const generateMistralResponse = async (
 - Group related objects close together and ensure logical visual structure (e.g., label next to shapes, lines connecting related parts).
 - For all shapes (e.g., rect, circle), include visually reasonable \`left\`, \`top\`, \`width\`, \`height\`, and \`fill\` values.
 - All text should be clearly readable, positioned appropriately near or within relevant shapes, with reasonable \`fontSize\`, \`left\`, and \`top\` values.
+- IMPORTANT: The canvas has a DARK background. All text MUST use \`"fill": "white"\` or other light colors so they are visible. Never use black text.
 - Use \`line\` objects to show connections or flow where appropriate. Ensure they start and end near the related shapes.
 - Use \`path\` only if a specific non-linear or curved visual element is required.
-- All colors must be clear and visually distinct. Default to \`"white"\` fill with \`"black"\` stroke for shapes unless otherwise meaningful.
+- All colors must be clear and visually distinct. Use colorful fills for shapes with \`"white"\` or light-colored \`stroke\`. Text must always be \`"white"\` or a bright color.
 - Maintain alignment and consistent spacing to produce a clean, easy-to-read diagram.
 
 **Canvas Context:** ${canvasDescription}
@@ -28,9 +29,9 @@ export const generateMistralResponse = async (
 \`\`\`json
 {
   "objects": [
-    { "type": "rect", "left": 100, "top": 100, "width": 120, "height": 60, "fill": "white", "stroke": "black", "strokeWidth": 2 },
-    { "type": "text", "text": "User", "left": 125, "top": 120, "fontSize": 20, "fill": "black" },
-    { "type": "line", "x1": 160, "y1": 160, "x2": 160, "y2": 200, "stroke": "black", "strokeWidth": 2 }
+    { "type": "rect", "left": 100, "top": 100, "width": 120, "height": 60, "fill": "#3b82f6", "stroke": "white", "strokeWidth": 2 },
+    { "type": "text", "text": "User", "left": 125, "top": 120, "fontSize": 20, "fill": "white" },
+    { "type": "line", "x1": 160, "y1": 160, "x2": 160, "y2": 200, "stroke": "white", "strokeWidth": 2 }
   ]
 }
 \`\`\`

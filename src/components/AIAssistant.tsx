@@ -102,9 +102,22 @@ const AIContent = ({
         timestamp: new Date()
       };
       setChatMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
-      toast.error("Failed to generate response. Please try again.");
+      const errorMsg = error?.message || '';
+      if (errorMsg.includes('API key')) {
+        toast.error('⚠️ Chat API key is missing. Please add your Cohere API key in the .env file.');
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '❌ API key not configured. Please set VITE_COHERE_API_KEY in your .env file and restart the app.', timestamp: new Date() }]);
+      } else if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('rate')) {
+        toast.error('⏳ Too many requests. Please wait a moment and try again.');
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '⏳ Rate limit reached. Please wait a few seconds before sending another message.', timestamp: new Date() }]);
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch')) {
+        toast.error('🌐 Network error. Please check your internet connection.');
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '🌐 Could not connect to the AI service. Please check your internet connection and try again.', timestamp: new Date() }]);
+      } else {
+        toast.error('💬 Failed to get a response. Please try again.');
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '❌ Something went wrong. Please try again or rephrase your question.', timestamp: new Date() }]);
+      }
     } finally {
       setIsGenerating(false);
       setChatPrompt(""); // Only clear after chat completes
@@ -135,7 +148,15 @@ const AIContent = ({
           }
           case 'text': {
             const { type, ...rest } = obj;
-            fabricObj = new fabric.IText(obj.text, { ...rest, selectable: true, evented: true });
+            // Ensure text is visible on dark canvas — override dark fills
+            const textFill = obj.fill;
+            const isDarkFill = !textFill || textFill === 'black' || textFill === '#000' || textFill === '#000000';
+            fabricObj = new fabric.IText(obj.text, {
+              ...rest,
+              fill: isDarkFill ? 'white' : textFill,
+              selectable: true,
+              evented: true,
+            });
             break;
           }
           case 'line': {
@@ -165,13 +186,45 @@ const AIContent = ({
           canvas.add(obj);
         }
       });
+
+      // Center the diagram on the canvas
+      if (objects.length > 0) {
+        // Calculate bounding box of all objects
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        objects.forEach((obj) => {
+          const bound = obj.getBoundingRect();
+          minX = Math.min(minX, bound.left);
+          minY = Math.min(minY, bound.top);
+          maxX = Math.max(maxX, bound.left + bound.width);
+          maxY = Math.max(maxY, bound.top + bound.height);
+        });
+
+        const diagramWidth = maxX - minX;
+        const diagramHeight = maxY - minY;
+        const canvasWidth = canvas.getWidth();
+        const canvasHeight = canvas.getHeight();
+
+        // Calculate offset to center
+        const offsetX = (canvasWidth - diagramWidth) / 2 - minX;
+        const offsetY = (canvasHeight - diagramHeight) / 2 - minY;
+
+        // Shift all objects
+        objects.forEach((obj) => {
+          obj.set({
+            left: (obj.left || 0) + offsetX,
+            top: (obj.top || 0) + offsetY,
+          });
+          obj.setCoords();
+        });
+      }
+
       canvas.renderAll();
       const canvasJson = canvas.toJSON();
       localStorage.setItem('canvasData', JSON.stringify(canvasJson));
 
     } catch (error) {
       console.error('Error adding objects to canvas:', error);
-      toast.error('Failed to add diagram to canvas');
+      toast.error('⚠️ Could not render the diagram. The format may be unsupported — try a simpler prompt.');
     }
   };
 
@@ -209,7 +262,8 @@ const AIContent = ({
         try {
           jsonData = JSON.parse(jsonSource);
           await addToCanvas(jsonData);
-          toast.success('Diagram added to canvas!');
+          const objCount = jsonData.objects?.length || 0;
+          toast.success(`✨ Diagram created with ${objCount} element${objCount !== 1 ? 's' : ''}!`);
           const cleanResponse = response
             .replace(/```(?:json)?[\s\S]*?```/, '')
             .replace(/\{[\s\S]*"objects"\s*:\s*\[[\s\S]*\][\s\S]*\}/, '')
@@ -224,10 +278,10 @@ const AIContent = ({
           }
         } catch (parseError) {
           console.error('Error parsing diagram JSON:', parseError);
-          toast.error("Failed to parse diagram JSON. The AI response was malformed.");
+          toast.error('⚠️ The AI returned an invalid diagram. Please try again with a clearer description.');
           const aiMessage: Message = {
             role: 'assistant',
-            content: `Failed to parse diagram. Raw response:\n\n${response}`,
+            content: '❌ I generated a response but it wasn\'t in the correct format. Could you try rephrasing your request? Simpler descriptions tend to work better.',
             timestamp: new Date()
           };
           setGenerateMessages(prev => [...prev, aiMessage]);
@@ -239,19 +293,38 @@ const AIContent = ({
           timestamp: new Date()
         };
         setGenerateMessages(prev => [...prev, aiMessage]);
-        toast.warning("No diagram generated. Try being more specific about the diagram you want.");
+        toast.warning('💡 No diagram was found in the response. Try describing the diagram more specifically.');
       }
     } catch (error: any) {
       console.error("Generate error:", error);
-      const errorMsg = error.message || "Unknown error";
-      if (errorMsg.includes('API key is not set')) {
-        toast.error("API key not configured. Please check your environment setup.");
+      const errorMsg = error?.message || '';
+      let userToast = '';
+      let chatMsg = '';
+
+      if (errorMsg.includes('API key')) {
+        userToast = '🔑 Gemini API key is missing. Please add it to your .env file.';
+        chatMsg = '❌ API key not configured.\n\nPlease set VITE_GEMINI_API_KEY in your .env file and restart the dev server.';
+      } else if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+        userToast = '⏳ API quota exceeded. Please wait or check your billing.';
+        chatMsg = '⏳ You\'ve hit the API rate limit.\n\nPlease wait a minute before trying again, or upgrade your API plan at https://aistudio.google.com';
+      } else if (errorMsg.includes('403') || errorMsg.includes('permission')) {
+        userToast = '🔒 API access denied. Please check your API key permissions.';
+        chatMsg = '🔒 Your API key doesn\'t have permission to use this model. Please check your key at https://aistudio.google.com/apikey';
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch')) {
+        userToast = '🌐 Network error. Check your internet connection.';
+        chatMsg = '🌐 Could not connect to Google\'s AI service. Please check your internet connection and try again.';
+      } else if (errorMsg.includes('Empty response')) {
+        userToast = '🤔 AI returned an empty response. Try again.';
+        chatMsg = '🤔 The AI didn\'t generate anything. Please try again with a different description.';
       } else {
-        toast.error(`Failed to generate diagram: ${errorMsg}`);
+        userToast = '❌ Failed to generate diagram. Please try again.';
+        chatMsg = '❌ Something went wrong while generating the diagram. Please try again or use a simpler prompt.';
       }
+
+      toast.error(userToast);
       const aiMessage: Message = {
         role: 'assistant',
-        content: `Error: ${errorMsg}`,
+        content: chatMsg,
         timestamp: new Date()
       };
       setGenerateMessages(prev => [...prev, aiMessage]);
