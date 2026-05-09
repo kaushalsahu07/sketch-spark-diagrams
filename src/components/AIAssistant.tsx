@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { generateMistralResponse } from "@/lib/mistral";
 import { generateChatResponse } from "@/lib/cohere";
 import { useCallback, memo } from "react";
+import { DiagramPreview } from "@/components/DiagramPreview";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Drawer,
@@ -58,6 +59,9 @@ const AIContent = ({
   const [chatPrompt, setChatPrompt] = useState("");
   const [generateMessages, setGenerateMessages] = useState<Message[]>([]);
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
+  // Pending diagram for preview
+  const [pendingDiagram, setPendingDiagram] = useState<any>(null);
 
   // Autofocus textarea ONLY after message is sent
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -125,108 +129,6 @@ const AIContent = ({
   };
 
   // --- GENERATE HANDLER ---
-  const addToCanvas = async (jsonData: any) => {
-    if (!canvas) return;
-    try {
-      canvas.clear();
-      if (!Array.isArray(jsonData.objects)) {
-        toast.error('Invalid diagram JSON: objects should be an array');
-        return;
-      }
-      const objects = jsonData.objects.map((obj: any) => {
-        let fabricObj;
-        switch (obj.type) {
-          case 'rect': {
-            const { type, ...rest } = obj;
-            fabricObj = new fabric.Rect(rest);
-            break;
-          }
-          case 'circle': {
-            const { type, ...rest } = obj;
-            fabricObj = new fabric.Circle(rest);
-            break;
-          }
-          case 'text': {
-            const { type, ...rest } = obj;
-            // Ensure text is visible on dark canvas — override dark fills
-            const textFill = obj.fill;
-            const isDarkFill = !textFill || textFill === 'black' || textFill === '#000' || textFill === '#000000';
-            fabricObj = new fabric.IText(obj.text, {
-              ...rest,
-              fill: isDarkFill ? 'white' : textFill,
-              selectable: true,
-              evented: true,
-            });
-            break;
-          }
-          case 'line': {
-            const { type, x1, y1, x2, y2, ...rest } = obj;
-            fabricObj = new fabric.Line([x1, y1, x2, y2], rest);
-            break;
-          }
-          case 'path': {
-            const { type, path, ...rest } = obj;
-            fabricObj = new fabric.Path(path, rest);
-            break;
-          }
-          default:
-            console.warn(`Unsupported object type: ${obj.type}`);
-            return null;
-        }
-        if (fabricObj) {
-          if (obj.fill) fabricObj.set('fill', obj.fill);
-          if (obj.stroke) fabricObj.set('stroke', obj.stroke);
-          if (obj.strokeWidth) fabricObj.set('strokeWidth', obj.strokeWidth);
-          if (obj.opacity !== undefined) fabricObj.set('opacity', obj.opacity);
-        }
-        return fabricObj;
-      }).filter((obj): obj is fabric.Object => Boolean(obj));
-      objects.forEach((obj: any) => {
-        if (obj) {
-          canvas.add(obj);
-        }
-      });
-
-      // Center the diagram on the canvas
-      if (objects.length > 0) {
-        // Calculate bounding box of all objects
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        objects.forEach((obj) => {
-          const bound = obj.getBoundingRect();
-          minX = Math.min(minX, bound.left);
-          minY = Math.min(minY, bound.top);
-          maxX = Math.max(maxX, bound.left + bound.width);
-          maxY = Math.max(maxY, bound.top + bound.height);
-        });
-
-        const diagramWidth = maxX - minX;
-        const diagramHeight = maxY - minY;
-        const canvasWidth = canvas.getWidth();
-        const canvasHeight = canvas.getHeight();
-
-        // Calculate offset to center
-        const offsetX = (canvasWidth - diagramWidth) / 2 - minX;
-        const offsetY = (canvasHeight - diagramHeight) / 2 - minY;
-
-        // Shift all objects
-        objects.forEach((obj) => {
-          obj.set({
-            left: (obj.left || 0) + offsetX,
-            top: (obj.top || 0) + offsetY,
-          });
-          obj.setCoords();
-        });
-      }
-
-      canvas.renderAll();
-      const canvasJson = canvas.toJSON();
-      localStorage.setItem('canvasData', JSON.stringify(canvasJson));
-
-    } catch (error) {
-      console.error('Error adding objects to canvas:', error);
-      toast.error('⚠️ Could not render the diagram. The format may be unsupported — try a simpler prompt.');
-    }
-  };
 
   const handleGenerate = async () => {
     if (!generatePrompt.trim()) return;
@@ -261,9 +163,10 @@ const AIContent = ({
       if (jsonSource) {
         try {
           jsonData = JSON.parse(jsonSource);
-          await addToCanvas(jsonData);
+          // Show preview instead of directly adding to canvas
+          setPendingDiagram(jsonData);
           const objCount = jsonData.objects?.length || 0;
-          toast.success(`✨ Diagram created with ${objCount} element${objCount !== 1 ? 's' : ''}!`);
+          toast.info(`🔍 Preview ready — ${objCount} element${objCount !== 1 ? 's' : ''} generated. Review and choose placement.`);
           const cleanResponse = response
             .replace(/```(?:json)?[\s\S]*?```/, '')
             .replace(/\{[\s\S]*"objects"\s*:\s*\[[\s\S]*\][\s\S]*\}/, '')
@@ -517,6 +420,19 @@ const AIContent = ({
             ? 'Creating your visualization with AI magic ✨'
             : 'Analyzing your canvas and crafting a response...'}
         </p>
+      )}
+
+      {/* Diagram Preview Modal */}
+      {pendingDiagram && (
+        <DiagramPreview
+          diagramJson={pendingDiagram}
+          canvas={canvas}
+          onAccept={() => setPendingDiagram(null)}
+          onReject={() => {
+            setPendingDiagram(null);
+            toast.info('Diagram rejected. Try a different prompt!');
+          }}
+        />
       )}
     </div>
   );
